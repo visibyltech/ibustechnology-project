@@ -1,8 +1,8 @@
 import { Product } from '../types';
 
 export const BRAND_INFO = {
-  name: 'iBUS Gadgets & Accessories',
-  shortName: 'iBUS',
+  name: 'Ibus Technology',
+  shortName: 'Ibus Technology',
   tagline: 'Your Connection to Quality!',
   location: 'UB96, Ubakason Plaza, Alaba International Market, Lagos, Nigeria',
   email: 'ibustechltd@gmail.com',
