@@ -54,7 +54,7 @@ const MainContent: React.FC = () => {
 
       {/* Floating WhatsApp Quick Action Button */}
       <a
-        href={`https://wa.me/${BRAND_INFO.phoneClean}?text=Hello%20iBUS%20Gadgets,%20I%20am%20browsing%20your%20website%20and%20need%20assistance.`}
+        href={`https://wa.me/${BRAND_INFO.phoneClean}?text=Hello%20Ibus%20Technology,%20I%20am%20browsing%20your%20website%20and%20need%20assistance.`}
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-6 right-6 z-40 bg-[#25D366] hover:bg-[#20ba5a] text-white p-3.5 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-transform duration-200"
