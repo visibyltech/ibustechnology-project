@@ -169,7 +169,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           {/* Interactive Card Action Buttons */}
           <div className="grid grid-cols-2 gap-2 mt-3.5">
             <button
-              onClick={() => {
+              onClick={(event) => {
+                event.stopPropagation();
                 if (isWholesaleMode) {
                   addToCart(product, product.minWholesaleQty, true);
                 } else {
