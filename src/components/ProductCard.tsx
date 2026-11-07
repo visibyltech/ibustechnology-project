@@ -33,7 +33,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const displayPrice = isWholesaleMode ? product.wholesalePrice : product.price;
 
   return (
-    <div className="group relative bg-[#11141b] rounded-2xl border border-[#222736] hover:border-amber-400/40 transition-all duration-300 flex flex-col overflow-hidden hover:shadow-xl hover:shadow-black/50">
+    <article
+      role="button"
+      tabIndex={0}
+      aria-label={`View details for ${product.name}`}
+      onClick={(event) => { event.stopPropagation(); setActiveProductModal(product); }}
+      onKeyDown={(event) => {
+        if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+          event.preventDefault();
+          setActiveProductModal(product);
+        }
+      }}
+      className="group relative bg-[#11141b] rounded-2xl border border-[#222736] hover:border-amber-400/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 transition-all duration-300 flex flex-col overflow-hidden hover:shadow-xl hover:shadow-black/50 cursor-pointer"
+    >
       
       {/* Top Media Container */}
       <div className="relative aspect-[4/3] w-full bg-[#0a0c10] overflow-hidden flex items-center justify-center p-4">
@@ -174,7 +186,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
             {product.saveToBuyEligible ? (
               <button
-                onClick={() => openCheckoutWithMode('save_to_buy', product)}
+                onClick={(event) => { event.stopPropagation(); openCheckoutWithMode('save_to_buy', product); }}
                 className="w-full py-2 px-2 bg-[#171b24] hover:bg-[#202532] text-slate-200 hover:text-white font-semibold text-xs rounded-lg transition-colors border border-[#293142] flex items-center justify-center gap-1"
                 title="Lock price with initial deposit and save towards it"
               >
@@ -194,6 +206,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         </div>
 
       </div>
-    </div>
+    </article>
   );
 };
