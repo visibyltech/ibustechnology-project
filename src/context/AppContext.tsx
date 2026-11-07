@@ -268,7 +268,34 @@ const INITIAL_INQUIRIES: WholesaleInquiry[] = [
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Navigation
-  const [currentView, setCurrentView] = useState<'home' | 'catalog' | 'wholesale' | 'save-to-buy' | 'about-contact' | 'dashboard' | 'admin'>('home');
+  const [currentView, setCurrentViewState] = useState<'home' | 'catalog' | 'wholesale' | 'save-to-buy' | 'about-contact' | 'dashboard' | 'admin'>(() => {
+    const historyView = window.history.state?.ibusAppView;
+    return historyView || 'home';
+  });
+
+  // Keep in-app navigation in browser history so Back returns to the previous
+  // store view instead of closing the site or leaving the app unexpectedly.
+  const setCurrentView = (view: 'home' | 'catalog' | 'wholesale' | 'save-to-buy' | 'about-contact' | 'dashboard' | 'admin') => {
+    if (view === currentView) return;
+    window.history.pushState({ ...window.history.state, ibusAppView: view }, '', window.location.href);
+    setCurrentViewState(view);
+  };
+
+  useEffect(() => {
+    window.history.replaceState({ ...window.history.state, ibusAppView: currentView }, '', window.location.href);
+
+    const handlePopState = (event: PopStateEvent) => {
+      const previousView = event.state?.ibusAppView;
+      if (previousView) {
+        setCurrentViewState(previousView);
+      } else {
+        setCurrentViewState('home');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
