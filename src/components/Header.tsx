@@ -13,7 +13,6 @@ import {
   PiggyBank, 
   CreditCard,
   Building2,
-  Lock
 } from 'lucide-react';
 import { useApp, formatNaira } from '../context/AppContext';
 import { BRAND_INFO } from '../data/products';
@@ -78,27 +77,7 @@ export const Header: React.FC = () => {
               <Phone className="w-3 h-3" />
               <span className="font-mono text-xs font-medium">{BRAND_INFO.phone}</span>
             </a>
-            <span className="text-slate-600">·</span>
-            <button
-              onClick={() => {
-                if (isAdminAuthenticated) {
-                  handleNavClick('admin');
-                } else {
-                  const pass = prompt('Enter Admin Access Code (Default: ibus2026):');
-                  if (pass === 'ibus2026' || pass === 'admin') {
-                    setIsAdminAuthenticated(true);
-                    handleNavClick('admin');
-                  } else if (pass !== null) {
-                    alert('Invalid credentials. Use: ibus2026');
-                  }
-                }
-              }}
-              className="text-xs text-slate-400 hover:text-amber-400 flex items-center gap-1 transition-colors"
-              title="Admin Portal"
-            >
-              <Lock className="w-2.5 h-2.5" />
-              Admin
-            </button>
+
           </div>
         </div>
       </div>
