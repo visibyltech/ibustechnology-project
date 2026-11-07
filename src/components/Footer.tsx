@@ -66,13 +66,13 @@ export const Footer: React.FC = () => {
               <div className="w-10 h-10 rounded-full overflow-hidden bg-black ring-1 ring-amber-400/40 shrink-0">
                 <img 
                   src={BRAND_INFO.logoUrl} 
-                  alt="iBUS Logo" 
+                  alt="Ibus Technology logo" 
                   className="w-full h-full object-cover scale-110"
                 />
               </div>
               <div>
                 <span className="text-lg font-black text-white tracking-tight">
-                  iBUS <span className="text-amber-400">GADGETS</span>
+                  Ibus <span className="text-amber-400">Technology</span>
                 </span>
                 <p className="text-[10px] font-mono uppercase text-slate-400 tracking-wider">
                   {BRAND_INFO.tagline}
@@ -276,7 +276,7 @@ export const Footer: React.FC = () => {
       {/* Bottom Copyright Strip */}
       <div className="border-t border-[#161a24] bg-[#06070a] px-4 sm:px-6 py-5">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 font-mono">
-          <p>© {new Date().getFullYear()} iBUS Gadgets & Accessories Ltd. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Ibus Technology. All rights reserved.</p>
           <div className="flex items-center gap-4 text-[11px]">
             <span>RC Verified · Lagos, Nigeria</span>
             <span>·</span>
