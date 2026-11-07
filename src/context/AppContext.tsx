@@ -273,29 +273,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return historyView || 'home';
   });
 
-  // Keep in-app navigation in browser history so Back returns to the previous
-  // store view instead of closing the site or leaving the app unexpectedly.
+  // Keep every store screen and product detail in browser history so the
+  // Android/browser Back button closes the detail first, then navigates within
+  // the store instead of leaving the website.
   const setCurrentView = (view: 'home' | 'catalog' | 'wholesale' | 'save-to-buy' | 'about-contact' | 'dashboard' | 'admin') => {
     if (view === currentView) return;
-    window.history.pushState({ ...window.history.state, ibusAppView: view }, '', window.location.href);
+    window.history.pushState({ ...window.history.state, ibusAppView: view, ibusProductModal: false }, '', window.location.href);
     setCurrentViewState(view);
   };
-
-  useEffect(() => {
-    window.history.replaceState({ ...window.history.state, ibusAppView: currentView }, '', window.location.href);
-
-    const handlePopState = (event: PopStateEvent) => {
-      const previousView = event.state?.ibusAppView;
-      if (previousView) {
-        setCurrentViewState(previousView);
-      } else {
-        setCurrentViewState('home');
-      }
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -324,8 +309,45 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved ? JSON.parse(saved) : ['ibus-buds-3', 'ibus-pb-30000'];
   });
 
-  // Modals
-  const [activeProductModal, setActiveProductModal] = useState<Product | null>(null);
+  // Product details participate in browser history. Pressing Back closes the
+  // detail overlay first, rather than navigating away from the store.
+  const [activeProductModal, setActiveProductModalState] = useState<Product | null>(null);
+  const setActiveProductModal = (product: Product | null) => {
+    if (product) {
+      if (!window.history.state?.ibusProductModal) {
+        window.history.pushState(
+          { ...window.history.state, ibusAppView: currentView, ibusProductModal: true },
+          '',
+          window.location.href
+        );
+      }
+      setActiveProductModalState(product);
+      return;
+    }
+
+    if (activeProductModal && window.history.state?.ibusProductModal) {
+      window.history.back();
+      return;
+    }
+    setActiveProductModalState(null);
+  };
+
+  useEffect(() => {
+    window.history.replaceState(
+      { ...window.history.state, ibusAppView: currentView, ibusProductModal: false },
+      '',
+      window.location.href
+    );
+
+    const handlePopState = (event: PopStateEvent) => {
+      setActiveProductModalState(null);
+      setCurrentViewState(event.state?.ibusAppView || 'home');
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [checkoutInitialMode, setCheckoutInitialMode] = useState<'pay_now' | 'bnpl' | 'save_to_buy'>('pay_now');
 
