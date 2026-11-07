@@ -1,33 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  Zap, 
-  ShieldCheck, 
-  Truck, 
-  Layers, 
-  ArrowRight, 
-  Sparkles, 
-  BatteryCharging, 
-  Headphones, 
-  PiggyBank, 
-  CreditCard,
-  Building2,
-  CheckCircle2
-} from 'lucide-react';
-import { useApp, formatNaira } from '../context/AppContext';
+import { Zap, ArrowRight, PiggyBank, CreditCard, Building2 } from 'lucide-react';
+import { useApp } from '../context/AppContext';
 import { BRAND_INFO } from '../data/products';
 
 export const Hero: React.FC = () => {
-  const { 
-    setCurrentView, 
-    setSelectedCategory, 
-    products, 
-    setActiveProductModal, 
-    addToCart,
-    openCheckoutWithMode
-  } = useApp();
-
-  const flagshipEarbuds = products.find((p) => p.id === 'ibus-buds-3') || products[0];
-  const flagshipPowerBank = products.find((p) => p.id === 'ibus-pb-30000') || products[1];
+  const { setCurrentView, setSelectedCategory, products } = useApp();
 
   // Rotate through real product photos for the hero background.
   const heroSlides = products
