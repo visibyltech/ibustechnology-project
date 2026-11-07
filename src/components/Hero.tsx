@@ -17,7 +17,10 @@ export const Hero: React.FC = () => {
     const interval = window.setInterval(() => {
       setActiveHeroSlide((current) => (current + 1) % heroSlides.length);
     }, 4500);
-    return (
+    return () => window.clearInterval(interval);
+  }, [heroSlides.length]);
+
+  return (
     <section className="relative isolate overflow-hidden bg-[#090a0d] border-b border-[#222734]">
       {/* Automatic product-photo background slideshow */}
       <div
@@ -58,20 +61,20 @@ export const Hero: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 pt-1">
+          <div className="flex flex-row items-stretch gap-2 pt-1 w-full max-w-xl">
             <button
               onClick={() => {
                 setSelectedCategory('all');
                 setCurrentView('catalog');
               }}
-              className="flex items-center gap-2 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-400 hover:from-amber-300 hover:to-amber-400 text-black px-5 py-2.5 rounded-lg font-bold text-xs sm:text-sm shadow-lg shadow-amber-400/15 transition-all"
+              className="flex flex-1 items-center justify-center gap-2 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-400 hover:from-amber-300 hover:to-amber-400 text-black px-5 py-2.5 rounded-lg font-bold text-xs sm:text-sm shadow-lg shadow-amber-400/15 transition-all"
             >
               <span>Shop Products</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => setCurrentView('wholesale')}
-              className="flex items-center gap-1.5 bg-[#151922] hover:bg-[#1d222e] text-white border border-[#2d3445] hover:border-amber-400/50 px-4 py-2.5 rounded-lg font-semibold text-xs sm:text-sm transition-all"
+              className="flex flex-1 items-center justify-center gap-1.5 bg-[#151922] hover:bg-[#1d222e] text-white border border-[#2d3445] hover:border-amber-400/50 px-4 py-2.5 rounded-lg font-semibold text-xs sm:text-sm transition-all"
             >
               <Building2 className="w-3.5 h-3.5 text-amber-400" />
               <span>Wholesale</span>
