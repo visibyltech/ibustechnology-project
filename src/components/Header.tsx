@@ -5,8 +5,6 @@ import {
   User, 
   Search, 
   ShieldCheck, 
-  Phone, 
-  MapPin, 
   Menu, 
   X, 
   Boxes, 
@@ -67,18 +65,7 @@ export const Header: React.FC = () => {
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
-            <a 
-              href={`https://wa.me/${BRAND_INFO.phoneClean}?text=Hello%20iBUS%20Gadgets,%20I%20am%20inquiry%20from%20your%20website`}
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 text-amber-400 hover:text-amber-300 transition-colors"
-            >
-              <Phone className="w-3 h-3" />
-              <span className="font-mono text-xs font-medium">{BRAND_INFO.phone}</span>
-            </a>
 
-          </div>
         </div>
       </div>
 
