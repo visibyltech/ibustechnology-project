@@ -64,13 +64,13 @@ export const Header: React.FC = () => {
       </div>
 
       {/* Main Header - Top Bar Contract: Zone 1 (Wordmark) — Zone 2 (4-5 Nav Links) — Zone 3 (Action) */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-6">
+      <div className="w-full max-w-7xl mx-auto min-w-0 px-3 sm:px-6 py-2.5 sm:py-3.5 flex items-center justify-between gap-2 sm:gap-6">
         {/* Zone 1: Brand Wordmark & Official Logo */}
         <button 
           onClick={() => handleNavClick('home')} 
-          className="flex items-center gap-3 group text-left shrink-0 cursor-pointer"
+          className="flex min-w-0 flex-1 sm:flex-initial items-center gap-2 sm:gap-3 group text-left shrink cursor-pointer"
         >
-          <div className="relative w-10 h-10 rounded-full overflow-hidden ring-2 ring-amber-400/30 group-hover:ring-amber-400 transition-all duration-300 bg-black flex items-center justify-center">
+          <div className="relative w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-full overflow-hidden ring-2 ring-amber-400/30 group-hover:ring-amber-400 transition-all duration-300 bg-black flex items-center justify-center">
             <img 
               src={BRAND_INFO.logoUrl} 
               alt="Ibus Technology logo" 
@@ -79,10 +79,10 @@ export const Header: React.FC = () => {
             />
           </div>
           <div className="flex flex-col">
-            <span className="text-xl font-extrabold tracking-tight text-white group-hover:text-amber-400 transition-colors">
+            <span className="text-base sm:text-xl font-extrabold tracking-tight text-white group-hover:text-amber-400 transition-colors whitespace-nowrap">
               Ibus <span className="text-amber-400 font-light text-base">Technology</span>
             </span>
-            <span className="text-[10px] tracking-wider uppercase text-slate-400 font-mono">
+            <span className="hidden sm:block text-[10px] tracking-wider uppercase text-slate-400 font-mono">
               Your Connection to Quality!
             </span>
           </div>
@@ -138,7 +138,7 @@ export const Header: React.FC = () => {
         </nav>
 
         {/* Zone 3: Primary Action Cluster */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        <div className="flex items-center gap-0.5 sm:gap-3 shrink-0">
           {/* Wholesale Mode Toggle Pill Button */}
           <button
             onClick={toggleWholesaleMode}
@@ -158,7 +158,7 @@ export const Header: React.FC = () => {
           {/* Wishlist Link */}
           <button
             onClick={() => handleNavClick('dashboard')}
-            className="p-2 text-slate-300 hover:text-amber-400 hover:bg-[#181c25] rounded-lg transition-colors relative"
+            className="hidden xs:inline-flex p-1.5 sm:p-2 text-slate-300 hover:text-amber-400 hover:bg-[#181c25] rounded-lg transition-colors relative"
             title="Saved Items"
           >
             <Heart className="w-5 h-5" />
@@ -173,7 +173,7 @@ export const Header: React.FC = () => {
           <div className="relative">
             <button
               onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-              className="p-2 text-slate-300 hover:text-amber-400 hover:bg-[#181c25] rounded-lg transition-colors flex items-center gap-1.5"
+              className="p-1.5 sm:p-2 text-slate-300 hover:text-amber-400 hover:bg-[#181c25] rounded-lg transition-colors flex items-center gap-1.5"
               title="Customer Account"
             >
               <User className="w-5 h-5" />
@@ -270,7 +270,7 @@ export const Header: React.FC = () => {
           {/* Cart Primary CTA */}
           <button
             onClick={() => setIsCartOpen(true)}
-            className="flex items-center gap-2.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black px-3.5 py-2 rounded-lg font-bold text-xs shadow-lg shadow-amber-400/10 hover:shadow-amber-400/25 transition-all"
+            className="flex items-center gap-1.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black px-2 sm:px-3.5 py-2 rounded-lg font-bold text-xs shadow-lg shadow-amber-400/10 hover:shadow-amber-400/25 transition-all"
             aria-label="Open Shopping Cart"
           >
             <div className="relative">
@@ -289,7 +289,7 @@ export const Header: React.FC = () => {
           {/* Mobile Menu Hamburger */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 text-slate-300 hover:text-white lg:hidden rounded-lg hover:bg-[#181c25]"
+            className="inline-flex shrink-0 p-2 text-slate-100 hover:text-white lg:hidden rounded-lg hover:bg-[#181c25]"
             aria-label="Toggle navigation menu"
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -299,7 +299,7 @@ export const Header: React.FC = () => {
 
       {/* Mobile Drawer Navigation */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-[#0e1017] border-b border-[#222734] px-4 py-4 space-y-3">
+        <div className="w-full min-w-0 lg:hidden bg-[#0e1017] border-b border-[#222734] px-4 py-4 space-y-3">
           <div className="flex items-center gap-2 mb-3">
             <button
               onClick={() => {
