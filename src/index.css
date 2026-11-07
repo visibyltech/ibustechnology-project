@@ -9,11 +9,17 @@
     --brand-surface: #12151c;
   }
 
+  html, body, #root {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
   body {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     background-color: #090a0d;
     color: #e2e8f0;
-    overflow-x: hidden;
+    overflow-x: clip;
   }
   
   h1, h2, h3, h4, h5, h6 {
