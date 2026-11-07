@@ -158,7 +158,7 @@ export const Header: React.FC = () => {
           {/* Wishlist Link */}
           <button
             onClick={() => handleNavClick('dashboard')}
-            className="hidden xs:inline-flex p-1.5 sm:p-2 text-slate-300 hover:text-amber-400 hover:bg-[#181c25] rounded-lg transition-colors relative"
+            className="inline-flex p-1.5 sm:p-2 text-slate-300 hover:text-amber-400 hover:bg-[#181c25] rounded-lg transition-colors relative"
             title="Saved Items"
           >
             <Heart className="w-5 h-5" />
