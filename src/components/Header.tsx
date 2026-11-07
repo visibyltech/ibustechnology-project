@@ -54,12 +54,6 @@ export const Header: React.FC = () => {
               <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
               100% Authentic iBUS Products
             </span>
-            <span className="hidden sm:inline text-slate-500">|</span>
-            <span className="hidden sm:flex items-center gap-1 text-slate-400">
-              <MapPin className="w-3 h-3 text-slate-500" />
-              Alaba Int'l Market, Lagos
-            </span>
-            <span className="hidden md:inline text-slate-500">|</span>
             <span className="hidden md:inline text-slate-400">
               Same-day dispatch nationwide across all 36 States
             </span>
