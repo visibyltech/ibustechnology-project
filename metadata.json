@@ -1,0 +1,6 @@
+{
+  "name": "iBUS Gadgets & Accessories",
+  "description": "Premium electronics and phone accessories storefront with wholesale pricing, Save to Buy savings plans, Buy Now Pay Later, and Paystack payment gateway.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
