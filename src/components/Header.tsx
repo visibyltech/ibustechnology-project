@@ -12,7 +12,7 @@ import {
   Boxes, 
   PiggyBank, 
   CreditCard,
-  Building2,
+  Building2
 } from 'lucide-react';
 import { useApp, formatNaira } from '../context/AppContext';
 import { BRAND_INFO } from '../data/products';
