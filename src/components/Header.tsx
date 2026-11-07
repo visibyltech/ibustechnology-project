@@ -113,14 +113,14 @@ export const Header: React.FC = () => {
           <div className="relative w-10 h-10 rounded-full overflow-hidden ring-2 ring-amber-400/30 group-hover:ring-amber-400 transition-all duration-300 bg-black flex items-center justify-center">
             <img 
               src={BRAND_INFO.logoUrl} 
-              alt="iBUS Logo" 
+              alt="Ibus Technology logo" 
               className="w-full h-full object-cover scale-110"
               referrerPolicy="no-referrer"
             />
           </div>
           <div className="flex flex-col">
             <span className="text-xl font-extrabold tracking-tight text-white group-hover:text-amber-400 transition-colors">
-              iBUS <span className="text-amber-400 font-light text-base">GADGETS</span>
+              Ibus <span className="text-amber-400 font-light text-base">Technology</span>
             </span>
             <span className="text-[10px] tracking-wider uppercase text-slate-400 font-mono">
               Your Connection to Quality!
