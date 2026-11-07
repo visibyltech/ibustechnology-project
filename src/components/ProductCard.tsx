@@ -167,8 +167,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           </div>
 
           {/* Interactive Card Action Buttons */}
-          <div className="grid grid-cols-2 gap-2 mt-3.5">
+          <div className="grid grid-cols-2 gap-2 mt-3.5 items-stretch">
             <button
+              type="button"
               onClick={(event) => {
                 event.stopPropagation();
                 if (isWholesaleMode) {
@@ -177,30 +178,32 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                   addToCart(product, 1, false);
                 }
               }}
-              className="w-full py-2 px-2.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black font-bold text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 shadow-sm"
+              className="min-w-0 min-h-[58px] w-full px-1.5 py-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black font-bold text-[10px] sm:text-xs leading-tight rounded-lg transition-all flex flex-col items-center justify-center gap-1 shadow-sm"
             >
-              <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
-              <span className="whitespace-nowrap">
+              <ShoppingBag className="w-4 h-4 shrink-0" />
+              <span className="block w-full text-center whitespace-normal break-words">
                 {isWholesaleMode ? `Add Carton (${product.minWholesaleQty})` : 'Add to Cart'}
               </span>
             </button>
 
             {product.saveToBuyEligible ? (
               <button
+                type="button"
                 onClick={(event) => { event.stopPropagation(); openCheckoutWithMode('save_to_buy', product); }}
-                className="w-full py-2 px-2 bg-[#171b24] hover:bg-[#202532] text-slate-200 hover:text-white font-semibold text-xs rounded-lg transition-colors border border-[#293142] flex items-center justify-center gap-1"
+                className="min-w-0 min-h-[58px] w-full px-1.5 py-2 bg-[#171b24] hover:bg-[#202532] text-slate-100 hover:text-white font-semibold text-[10px] sm:text-xs leading-tight rounded-lg transition-colors border border-[#293142] flex flex-col items-center justify-center gap-1"
                 title="Lock price with initial deposit and save towards it"
               >
-                <PiggyBank className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span className="whitespace-nowrap">Save to Buy</span>
+                <PiggyBank className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span className="block w-full text-center whitespace-normal break-words">Save to Buy</span>
               </button>
             ) : (
               <button
-                onClick={() => setActiveProductModal(product)}
-                className="w-full py-2 px-2 bg-[#171b24] hover:bg-[#202532] text-slate-200 hover:text-white font-semibold text-xs rounded-lg transition-colors border border-[#293142] flex items-center justify-center gap-1"
+                type="button"
+                onClick={(event) => { event.stopPropagation(); setActiveProductModal(product); }}
+                className="min-w-0 min-h-[58px] w-full px-1.5 py-2 bg-[#171b24] hover:bg-[#202532] text-slate-100 hover:text-white font-semibold text-[10px] sm:text-xs leading-tight rounded-lg transition-colors border border-[#293142] flex flex-col items-center justify-center gap-1"
               >
-                <Eye className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                <span className="whitespace-nowrap">Details</span>
+                <Eye className="w-4 h-4 text-amber-400 shrink-0" />
+                <span className="block w-full text-center whitespace-normal break-words">Details</span>
               </button>
             )}
           </div>
