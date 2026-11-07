@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Zap, 
   ShieldCheck, 
@@ -29,8 +29,30 @@ export const Hero: React.FC = () => {
   const flagshipEarbuds = products.find((p) => p.id === 'ibus-buds-3') || products[0];
   const flagshipPowerBank = products.find((p) => p.id === 'ibus-pb-30000') || products[1];
 
+  // Rotate through real product photos for the hero background.
+  const heroSlides = products
+    .flatMap((product) => product.images.map((image) => ({ image, name: product.name })))
+    .filter((slide) => Boolean(slide.image));
+  const [activeHeroSlide, setActiveHeroSlide] = useState(0);
+
+  useEffect(() => {
+    if (heroSlides.length < 2) return;
+    const interval = window.setInterval(() => {
+      setActiveHeroSlide((current) => (current + 1) % heroSlides.length);
+    }, 4500);
+    return () => window.clearInterval(interval);
+  }, [heroSlides.length]);
+
   return (
     <div className="relative overflow-hidden bg-[#090a0d] border-b border-[#222734]">
+      {/* Automatic product-photo background slideshow */}
+      <div
+        key={heroSlides[activeHeroSlide]?.image || BRAND_INFO.logoUrl}
+        aria-hidden="true"
+        className="absolute inset-0 bg-cover bg-center opacity-25 transition-opacity duration-1000"
+        style={{ backgroundImage: `url("${heroSlides[activeHeroSlide]?.image || BRAND_INFO.logoUrl}")` }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-r from-[#090a0d]/95 via-[#090a0d]/85 to-[#090a0d]/65 pointer-events-none" />
       {/* Background ambient lighting */}
       <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-amber-500/10 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-yellow-400/5 rounded-full blur-[120px] pointer-events-none" />
