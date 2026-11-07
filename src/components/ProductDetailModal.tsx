@@ -139,6 +139,39 @@ export const ProductDetailModal: React.FC = () => {
               <h1 className="text-xl sm:text-2xl font-black text-white leading-snug">
                 {product.name}
               </h1>
+              <div className="mt-3 space-y-2.5">
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => {
+                      addToCart(product, quantity);
+                      setActiveProductModal(null);
+                    }}
+                    className="min-w-0 py-3 px-2 sm:px-4 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-400 hover:from-amber-300 hover:to-amber-400 text-black font-extrabold text-[11px] sm:text-xs rounded-xl shadow-lg shadow-amber-400/20 flex items-center justify-center gap-1.5 transition-all"
+                  >
+                    <ShoppingBag className="w-4 h-4 shrink-0" />
+                    <span>Add to Cart ({formatNaira(totalCost)})</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      openCheckoutWithMode('pay_now', product);
+                      setActiveProductModal(null);
+                    }}
+                    className="min-w-0 py-3 px-2 sm:px-4 bg-[#f4b400] hover:bg-amber-300 text-black font-extrabold text-[11px] sm:text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all"
+                  >
+                    <CreditCard className="w-4 h-4 shrink-0" />
+                    <span>Shop Now</span>
+                  </button>
+                </div>
+                <a
+                  href={`https://wa.me/${BRAND_INFO.phoneClean}?text=Hello%20iBUS%20Alaba,%20I%20am%20interested%20in%20purchasing%20${quantity}%20units%20of%20${encodeURIComponent(product.name)}.%20Please%20confirm%20waybill%20availability.`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-2.5 bg-[#0e2717] hover:bg-[#143922] text-emerald-400 border border-emerald-500/30 font-semibold text-xs rounded-xl flex items-center justify-center gap-2 transition-colors"
+                >
+                  <Phone className="w-3.5 h-3.5" />
+                  <span>Order on WhatsApp</span>
+                </a>
+              </div>
               <p className="text-xs text-slate-400 mt-1">
                 {product.subTitle}
               </p>
@@ -238,43 +271,27 @@ export const ProductDetailModal: React.FC = () => {
                 </button>
               </div>
 
-              {/* CTAs Cluster */}
-              <div className="mt-5 space-y-2.5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {/* Primary Buy Now / Add to Cart */}
+              {/* Additional purchase options */}
+              <div className="mt-4 space-y-2.5">
+                {product.saveToBuyEligible && (
                   <button
                     onClick={() => {
-                      addToCart(product, quantity);
                       setActiveProductModal(null);
+                      openCheckoutWithMode('save_to_buy', product);
                     }}
-                    className="py-3 px-4 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-400 hover:from-amber-300 hover:to-amber-400 text-black font-extrabold text-xs rounded-xl shadow-lg shadow-amber-400/20 flex items-center justify-center gap-2 transition-all"
+                    className="w-full py-2.5 px-4 bg-[#181c26] hover:bg-[#222838] text-white border border-[#2d364a] hover:border-emerald-400 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all"
                   >
-                    <ShoppingBag className="w-4 h-4 text-black" />
-                    <span>Add {quantity > 1 ? `${quantity} Units` : 'to Cart'} ({formatNaira(totalCost)})</span>
+                    <PiggyBank className="w-4 h-4 text-emerald-400" />
+                    <span>Save to Buy (Layaway)</span>
                   </button>
+                )}
 
-                  {/* Save to Buy Option */}
-                  {product.saveToBuyEligible && (
-                    <button
-                      onClick={() => {
-                        setActiveProductModal(null);
-                        openCheckoutWithMode('save_to_buy', product);
-                      }}
-                      className="py-3 px-4 bg-[#181c26] hover:bg-[#222838] text-white border border-[#2d364a] hover:border-emerald-400 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all"
-                    >
-                      <PiggyBank className="w-4 h-4 text-emerald-400" />
-                      <span>Save to Buy (Layaway)</span>
-                    </button>
-                  )}
-                </div>
-
-                {/* Buy Now, Pay Later Banner / Trigger */}
                 {product.bnplEligible && (
                   <div className="p-3 rounded-xl bg-blue-950/40 border border-blue-500/30 flex items-center justify-between text-xs">
                     <div>
                       <p className="font-bold text-white flex items-center gap-1.5">
                         <CreditCard className="w-3.5 h-3.5 text-blue-400" />
-                        Buy Now, Pay Later (0% Interest)
+                        Buy Now, Pay Later
                       </p>
                       <p className="text-[11px] text-slate-300">
                         Pay <span className="text-amber-400 font-bold">{formatNaira(bnplDownPayment)}</span> today, then 3 payments of {formatNaira(bnplInstallment)}.
@@ -291,17 +308,6 @@ export const ProductDetailModal: React.FC = () => {
                     </button>
                   </div>
                 )}
-
-                {/* Direct WhatsApp Dealer Enquiry */}
-                <a
-                  href={`https://wa.me/${BRAND_INFO.phoneClean}?text=Hello%20iBUS%20Alaba,%20I%20am%20interested%20in%20purchasing%20${quantity}%20units%20of%20${encodeURIComponent(product.name)}.%20Please%20confirm%20waybill%20availability.`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full py-2.5 bg-[#0e2717] hover:bg-[#143922] text-emerald-400 border border-emerald-500/30 font-semibold text-xs rounded-xl flex items-center justify-center gap-2 transition-colors"
-                >
-                  <Phone className="w-3.5 h-3.5" />
-                  <span>Order via WhatsApp Direct Desk (+234 810 220 8521)</span>
-                </a>
               </div>
             </div>
 
