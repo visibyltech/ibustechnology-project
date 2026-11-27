@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { collection, doc, onSnapshot, orderBy, query, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDocs, onSnapshot, orderBy, query, writeBatch } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { approveOrRejectPayment, PaymentSubmission } from '../lib/paymentSubmissions';
 import { 
@@ -94,6 +94,56 @@ export const AdminDashboard: React.FC = () => {
   const totalSavingsLocked = saveToBuyPlans.reduce((sum, p) => sum + p.totalSaved, 0);
   const totalWholesaleOrders = orders.filter((o) => o.items.some((i) => i.isWholesale)).length;
 
+  const handleMigrateCatalogue = async () => {
+    if (!auth.currentUser || !products.length) {
+      showNotification('No existing products were found to migrate.');
+      return;
+    }
+
+    setIsMigratingCatalogue(true);
+    try {
+      const existingSnapshot = await getDocs(collection(db, 'products'));
+      const existingIds = new Set(existingSnapshot.docs.map((item) => item.id));
+      const missingProducts = products.filter((product) => !existingIds.has(product.id));
+
+      if (!missingProducts.length) {
+        showNotification('Your product catalogue is already stored in Firebase.');
+        return;
+      }
+
+      // Upload local product images to Cloudinary before saving product records.
+      const migratedProducts = await Promise.all(missingProducts.map(async (product) => {
+        const images = await Promise.all((product.images || []).map(async (image, index) => {
+          if (/^https?:\\/\\//i.test(image)) return image;
+          const response = await fetch(image);
+          if (!response.ok) throw new Error(`Could not read product image: ${image}`);
+          const blob = await response.blob();
+          const mimeType = blob.type || 'image/jpeg';
+          const extension = mimeType.split('/')[1]?.replace('jpeg', 'jpg') || 'jpg';
+          const file = new File([blob], `${product.id}-${index + 1}.${extension}`, { type: mimeType });
+          const uploaded = await uploadImageToCloudinary(file, 'ibus/products');
+          return uploaded.secureUrl;
+        }));
+        return { ...product, images };
+      }));
+
+      for (let offset = 0; offset < migratedProducts.length; offset += 400) {
+        const batch = writeBatch(db);
+        migratedProducts.slice(offset, offset + 400).forEach((product) => {
+          batch.set(doc(db, 'products', product.id), product);
+        });
+        await batch.commit();
+      }
+
+      showNotification(`Successfully migrated ${migratedProducts.length} products to Firebase and their images to Cloudinary.`);
+    } catch (error) {
+      console.error('Product catalogue migration failed:', error);
+      showNotification(error instanceof Error ? error.message : 'Catalogue migration failed. Check Firebase and Cloudinary configuration.');
+    } finally {
+      setIsMigratingCatalogue(false);
+    }
+  };
+
   const handleCreateProduct = (e: React.FormEvent) => {
     e.preventDefault();
     addProduct({
@@ -148,13 +198,23 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </div>
 
-        <button
-          onClick={() => setShowAddProductModal(true)}
-          className="px-5 py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black font-extrabold text-xs rounded-xl shadow-md flex items-center gap-2 self-start md:self-auto transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add New Product to Inventory</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
+          <button
+            onClick={handleMigrateCatalogue}
+            disabled={isMigratingCatalogue || products.length === 0}
+            className="px-4 py-2.5 bg-[#202938] hover:bg-[#2a3547] border border-[#3a465a] text-white font-bold text-xs rounded-xl flex items-center gap-2 transition-all disabled:opacity-50"
+          >
+            <Boxes className="w-4 h-4" />
+            <span>{isMigratingCatalogue ? 'Migrating catalogue…' : 'Migrate Existing Products'}</span>
+          </button>
+          <button
+            onClick={() => setShowAddProductModal(true)}
+            className="px-5 py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black font-extrabold text-xs rounded-xl shadow-md flex items-center gap-2 transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add New Product</span>
+          </button>
+        </div>
       </div>
 
       {/* KPI Stats Strip */}
