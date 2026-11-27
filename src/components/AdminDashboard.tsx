@@ -1,4 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { auth, db } from '../lib/firebase';
+import { approveOrRejectPayment, PaymentSubmission } from '../lib/paymentSubmissions';
 import { 
   ShieldCheck, 
   Package, 
@@ -41,7 +44,32 @@ export const AdminDashboard: React.FC = () => {
     showNotification
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'save_to_buy' | 'bnpl' | 'inquiries'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'payments' | 'save_to_buy' | 'bnpl' | 'inquiries'>('overview');
+  const [paymentSubmissions, setPaymentSubmissions] = useState<PaymentSubmission[]>([]);
+  const [reviewingPaymentId, setReviewingPaymentId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const q = query(collection(db, 'paymentSubmissions'), orderBy('createdAt', 'desc'));
+    return onSnapshot(q, (snapshot) => {
+      setPaymentSubmissions(snapshot.docs.map((item) => ({ id: item.id, ...item.data() } as PaymentSubmission)));
+    }, (error) => {
+      showNotification(error.message || 'Unable to load transfer submissions');
+    });
+  }, [showNotification]);
+
+  const reviewPayment = async (payment: PaymentSubmission, decision: 'approved' | 'rejected') => {
+    if (!auth.currentUser) return;
+    const note = decision === 'rejected' ? window.prompt('Reason for rejecting this receipt (optional):') || '' : '';
+    setReviewingPaymentId(payment.id);
+    try {
+      await approveOrRejectPayment(payment, decision, auth.currentUser.uid, note);
+      showNotification(decision === 'approved' ? 'Transfer approved; linked order or savings balance updated.' : 'Transfer rejected. No balance was credited.');
+    } catch (error) {
+      showNotification(error instanceof Error ? error.message : 'Unable to review this transfer');
+    } finally {
+      setReviewingPaymentId(null);
+    }
+  };
 
   // New product modal
   const [showAddProductModal, setShowAddProductModal] = useState(false);
@@ -181,6 +209,12 @@ export const AdminDashboard: React.FC = () => {
           }`}
         >
           Customer Orders ({orders.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('payments')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${activeTab === 'payments' ? 'bg-amber-400 text-black font-extrabold' : 'bg-[#12151e] text-slate-300 border border-[#222736]'}`}
+        >
+          Bank Transfer Receipts ({paymentSubmissions.filter((p) => p.status === 'pending').length} pending)
         </button>
         <button
           onClick={() => setActiveTab('save_to_buy')}
@@ -471,6 +505,37 @@ export const AdminDashboard: React.FC = () => {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* BANK TRANSFER REVIEW */}
+      {activeTab === 'payments' && (
+        <div className="bg-[#11141c] border border-[#222736] rounded-2xl p-6 space-y-4">
+          <div className="flex items-center justify-between border-b border-[#202533] pb-4">
+            <h3 className="text-sm font-bold text-white uppercase font-mono">Bank Transfer Receipt Verification</h3>
+            <span className="text-xs text-amber-400">{paymentSubmissions.filter((p) => p.status === 'pending').length} awaiting review</span>
+          </div>
+          {paymentSubmissions.length === 0 && <p className="text-sm text-slate-400">No bank transfer receipts have been submitted.</p>}
+          {paymentSubmissions.map((payment) => (
+            <div key={payment.id} className="rounded-xl border border-[#293244] bg-[#141722] p-4 space-y-3">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <p className="text-sm font-bold text-white">{payment.customerName || 'Customer'} · {formatNaira(payment.amount)}</p>
+                  <p className="text-[11px] text-slate-400">{payment.customerEmail} · {payment.customerPhone}</p>
+                  <p className="text-[11px] text-slate-500 font-mono">{payment.orderNumber || payment.planNumber || payment.id}</p>
+                </div>
+                <span className={`rounded px-2 py-1 text-[10px] font-bold uppercase ${payment.status === 'pending' ? 'bg-amber-400/15 text-amber-300' : payment.status === 'approved' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'}`}>{payment.status}</span>
+              </div>
+              <a href={payment.receiptUrl} target="_blank" rel="noopener noreferrer" className="inline-flex text-xs text-amber-400 underline">Open uploaded transfer receipt</a>
+              {payment.status === 'pending' && (
+                <div className="flex gap-2">
+                  <button disabled={reviewingPaymentId === payment.id} onClick={() => reviewPayment(payment, 'approved')} className="rounded-lg bg-emerald-500 px-3 py-2 text-xs font-bold text-black disabled:opacity-50">Approve transfer</button>
+                  <button disabled={reviewingPaymentId === payment.id} onClick={() => reviewPayment(payment, 'rejected')} className="rounded-lg bg-red-500/15 px-3 py-2 text-xs font-bold text-red-300 disabled:opacity-50">Reject receipt</button>
+                </div>
+              )}
+              {payment.reviewNote && <p className="text-xs text-slate-400">Admin note: {payment.reviewNote}</p>}
+            </div>
+          ))}
         </div>
       )}
 
