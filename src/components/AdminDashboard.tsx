@@ -114,7 +114,7 @@ export const AdminDashboard: React.FC = () => {
       // Upload local product images to Cloudinary before saving product records.
       const migratedProducts = await Promise.all(missingProducts.map(async (product) => {
         const images = await Promise.all((product.images || []).map(async (image, index) => {
-          if (/^https?:\\/\\//i.test(image)) return image;
+          if (/^https?:\/\//i.test(image)) return image;
           const response = await fetch(image);
           if (!response.ok) throw new Error(`Could not read product image: ${image}`);
           const blob = await response.blob();
