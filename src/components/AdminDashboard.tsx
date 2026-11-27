@@ -196,7 +196,7 @@ export const AdminDashboard: React.FC = () => {
       wholesaleTiers: editingProduct?.wholesaleTiers?.length
         ? editingProduct.wholesaleTiers.map((tier, index) => index === 0 ? { ...tier, minQty: Number(newProdMinWholesaleQty), pricePerUnit: Number(newProdWholesalePrice) } : tier)
         : [{ minQty: Number(newProdMinWholesaleQty), pricePerUnit: Number(newProdWholesalePrice), discountPercent: 25, label: 'Carton' }],
-      images: [newProdImage || editingProduct?.images?.[0] || ''],
+      images: [newProdImage || editingProduct?.images?.[0] || '', ...(editingProduct?.images?.slice(1) || [])].filter(Boolean),
       inStock: Number(newProdStock) > 0,
       stockCount: Number(newProdStock),
       badge: newProdBadge.trim() || undefined,
@@ -208,7 +208,7 @@ export const AdminDashboard: React.FC = () => {
       saveToBuyEligible: editingProduct?.saveToBuyEligible ?? true
     };
     if (editingProduct) updateProduct(editingProduct.id, productData);
-    else addProduct(productData);
+    else addProduct(productData as Omit<Product, 'id'>);
     setShowAddProductModal(false);
     resetProductForm();
   };
