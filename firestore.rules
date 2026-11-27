@@ -77,8 +77,8 @@ service cloud.firestore {
         && (
           (request.resource.data.paymentType == 'order'
             && request.resource.data.orderId is string
-            && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.customerUid == request.auth.uid
-            && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.total == request.resource.data.amount)
+            && getAfter(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.customerUid == request.auth.uid
+            && getAfter(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.total == request.resource.data.amount)
           ||
           (request.resource.data.paymentType == 'save_to_buy'
             && request.resource.data.planId is string
