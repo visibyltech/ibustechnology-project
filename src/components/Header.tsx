@@ -27,7 +27,7 @@ export const Header: React.FC = () => {
     isWholesaleMode,
     toggleWholesaleMode,
     user,
-    isAdminAuthenticated,
+    isAdminEmailRecognized,
     logout,
     searchQuery,
     setSearchQuery,
@@ -229,7 +229,7 @@ export const Header: React.FC = () => {
                     >
                       Save to Buy Tracker
                     </button>
-                    {isAdminAuthenticated && (
+                    {isAdminEmailRecognized && (
                     <button
                       onClick={() => {
                         handleNavClick('admin');
