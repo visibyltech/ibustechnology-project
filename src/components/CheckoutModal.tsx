@@ -68,7 +68,7 @@ export const CheckoutModal: React.FC = () => {
   const [landmark, setLandmark] = useState('');
   const [deliveryNotes, setDeliveryNotes] = useState('');
 
-  // Payment Gateway Simulator States
+  // Payment Provider Setup Pending
   const [payGatewayTab, setPayGatewayTab] = useState<'card' | 'transfer' | 'ussd'>('card');
   const [cardNumber, setCardNumber] = useState('5399 4100 8821 9012');
   const [cardExpiry, setCardExpiry] = useState('11/28');
@@ -118,132 +118,18 @@ export const CheckoutModal: React.FC = () => {
   };
 
   const executePayNow = () => {
-    setIsProcessingPayment(true);
-    setTimeout(() => {
-      setIsProcessingPayment(false);
-      const newOrder = createOrder({
-        customerName,
-        customerEmail: customerEmail || 'customer@gmail.com',
-        customerPhone,
-        deliveryAddress: {
-          street,
-          city: city || 'Center',
-          state: selectedState,
-          landmark
-        },
-        items: cart.map((i) => ({
-          productId: i.product.id,
-          productName: i.product.name,
-          image: i.product.images[0] || BRAND_INFO.logoUrl,
-          quantity: i.quantity,
-          unitPrice: i.unitPrice,
-          isWholesale: i.isWholesale
-        })),
-        subtotal: cartSubtotal,
-        shippingFee,
-        discount: 0,
-        total: totalAmount,
-        paymentMethod: 'pay_now_paystack',
-        paymentStatus: 'paid',
-        paymentReference: `PSTK_${Math.floor(1000000000 + Math.random() * 9000000000)}`,
-        notes: deliveryNotes
-      });
-
-      setCompletedOrder(newOrder);
-      setStep('confirmed');
-      triggerConfetti();
-    }, 1500);
+    setIsProcessingPayment(false);
+    window.alert('Online payments are not enabled yet. No payment has been taken and no order has been confirmed. Please contact iBUS to arrange payment.');
   };
 
   const executeBnpl = () => {
-    if (bvnLast4.length !== 4) {
-      alert('Please provide the last 4 digits of your BVN or NIN for credit verification.');
-      return;
-    }
-    setIsProcessingPayment(true);
-    setTimeout(() => {
-      setIsProcessingPayment(false);
-      // Create BNPL record for primary product
-      const primaryProduct = cart[0]?.product;
-      if (primaryProduct) {
-        createBnplPlan(primaryProduct.id, bvnLast4, 6);
-      }
-
-      const newOrder = createOrder({
-        customerName,
-        customerEmail: customerEmail || 'customer@gmail.com',
-        customerPhone,
-        deliveryAddress: {
-          street,
-          city: city || 'City',
-          state: selectedState,
-          landmark
-        },
-        items: cart.map((i) => ({
-          productId: i.product.id,
-          productName: i.product.name,
-          image: i.product.images[0] || BRAND_INFO.logoUrl,
-          quantity: i.quantity,
-          unitPrice: i.unitPrice,
-          isWholesale: i.isWholesale
-        })),
-        subtotal: cartSubtotal,
-        shippingFee,
-        discount: 0,
-        total: totalAmount,
-        paymentMethod: 'bnpl',
-        paymentStatus: 'partial',
-        paymentReference: `BNPL_INIT_${Math.floor(100000 + Math.random() * 900000)}`,
-        notes: `BNPL 25% down payment approved. BVN hash: ***${bvnLast4}`
-      });
-
-      setCompletedOrder(newOrder);
-      setStep('confirmed');
-      triggerConfetti();
-    }, 1200);
+    setIsProcessingPayment(false);
+    window.alert('Buy Now Pay Later is not enabled yet. No credit application or payment has been submitted.');
   };
 
   const executeSaveToBuy = () => {
-    setIsProcessingPayment(true);
-    setTimeout(() => {
-      setIsProcessingPayment(false);
-      const primaryProduct = cart[0]?.product;
-      if (primaryProduct) {
-        createSaveToBuyPlan(primaryProduct.id, cartSubtotal, stbInitialDeposit, stbFrequency, 'Card');
-      }
-
-      const newOrder = createOrder({
-        customerName,
-        customerEmail: customerEmail || 'customer@gmail.com',
-        customerPhone,
-        deliveryAddress: {
-          street,
-          city: city || 'City',
-          state: selectedState,
-          landmark
-        },
-        items: cart.map((i) => ({
-          productId: i.product.id,
-          productName: i.product.name,
-          image: i.product.images[0] || BRAND_INFO.logoUrl,
-          quantity: i.quantity,
-          unitPrice: i.unitPrice,
-          isWholesale: i.isWholesale
-        })),
-        subtotal: cartSubtotal,
-        shippingFee,
-        discount: 0,
-        total: totalAmount,
-        paymentMethod: 'save_to_buy',
-        paymentStatus: 'partial',
-        paymentReference: `STB_LOCK_${Math.floor(100000 + Math.random() * 900000)}`,
-        notes: `Save to Buy initiated with initial lock of ${formatNaira(stbInitialDeposit)}`
-      });
-
-      setCompletedOrder(newOrder);
-      setStep('confirmed');
-      triggerConfetti();
-    }, 1200);
+    setIsProcessingPayment(false);
+    window.alert('Save to Buy payments are not enabled yet. No deposit has been collected and no savings plan has been activated.');
   };
 
   const copyToClipboard = (text: string) => {
@@ -586,7 +472,7 @@ export const CheckoutModal: React.FC = () => {
                     {showOtpScreen ? (
                       <div className="p-3 bg-amber-400/10 border border-amber-400/30 rounded-lg space-y-2">
                         <p className="text-xs text-white font-bold">Bank OTP Verification</p>
-                        <p className="text-[11px] text-slate-300">Enter the test OTP sent to your Nigerian phone number: <span className="font-mono text-amber-400">123456</span></p>
+                        <p className="text-[11px] text-slate-300">Payment authentication will be available after a payment provider is connected.</p>
                         <input 
                           type="text" 
                           placeholder="Enter 6-digit OTP"
@@ -610,7 +496,7 @@ export const CheckoutModal: React.FC = () => {
                       className="w-full mt-2 py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs rounded-xl shadow-lg transition-colors flex items-center justify-center gap-2"
                     >
                       <Lock className="w-4 h-4" />
-                      <span>{isProcessingPayment ? 'Verifying with Paystack...' : showOtpScreen ? `Confirm Payment of ${formatNaira(totalAmount)}` : `Pay ${formatNaira(totalAmount)}`}</span>
+                      <span>{isProcessingPayment ? 'Payment setup pending...' : showOtpScreen ? `Confirm Payment of ${formatNaira(totalAmount)}` : `Pay ${formatNaira(totalAmount)}`}</span>
                     </button>
                   </div>
                 )}
@@ -625,12 +511,12 @@ export const CheckoutModal: React.FC = () => {
                     <div className="p-4 bg-[#181d28] rounded-xl border border-[#293244] space-y-2">
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-slate-400">Bank Name:</span>
-                        <span className="text-white font-bold">Wema Bank / Providus (Paystack)</span>
+                        <span className="text-white font-bold">Payment account not configured</span>
                       </div>
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-slate-400">Account Number:</span>
                         <div className="flex items-center gap-2">
-                          <span className="text-amber-400 font-mono font-bold text-base">0293847192</span>
+                          <span className="text-amber-400 font-mono font-bold text-base">Not available</span>
                           <button
                             type="button"
                             onClick={() => copyToClipboard('0293847192')}
@@ -643,10 +529,10 @@ export const CheckoutModal: React.FC = () => {
                       </div>
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-slate-400">Beneficiary:</span>
-                        <span className="text-slate-200">iBUS TECH LTD - ALABA</span>
+                        <span className="text-slate-200">Payment details will be displayed here after provider setup</span>
                       </div>
                       <div className="text-[10px] text-amber-400/90 font-mono pt-1 border-t border-[#222838]">
-                        Account expires in: 29:45 mins
+                        No transfer account has been issued
                       </div>
                     </div>
 
@@ -667,8 +553,8 @@ export const CheckoutModal: React.FC = () => {
                   <div className="mt-4 p-4 rounded-xl bg-[#131620] border border-[#232938] space-y-3">
                     <p className="text-xs text-slate-300">Dial this USSD code on your registered Nigerian SIM card:</p>
                     <div className="p-3 bg-[#181d28] rounded-lg border border-[#293244] font-mono text-center">
-                      <p className="text-base text-amber-400 font-bold">*737*000*8492#</p>
-                      <p className="text-[10px] text-slate-400 mt-1">GTBank, Zenith, Access, First Bank, UBA supported</p>
+                      <p className="text-base text-amber-400 font-bold">Not configured</p>
+                      <p className="text-[10px] text-slate-400 mt-1">USSD will be enabled after provider setup</p>
                     </div>
                     <button
                       type="button"
