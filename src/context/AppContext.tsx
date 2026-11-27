@@ -8,7 +8,6 @@ import {
   CartItem, 
   Order, 
   SaveToBuyPlan, 
-  BNPLPlan, 
   WholesaleInquiry, 
   UserProfile,
   PaymentMethod
@@ -64,11 +63,6 @@ interface AppContextType {
   isSaveToBuyModalOpen: boolean;
   setIsSaveToBuyModalOpen: (open: boolean) => void;
 
-  bnplSelectedProduct: Product | null;
-  setBnplSelectedProduct: (p: Product | null) => void;
-  isBnplModalOpen: boolean;
-  setIsBnplModalOpen: (open: boolean) => void;
-
   isWholesaleInquiryModalOpen: boolean;
   setIsWholesaleInquiryModalOpen: (open: boolean) => void;
 
@@ -79,19 +73,13 @@ interface AppContextType {
   setIsAdminAuthenticated: (val: boolean) => void;
   logout: () => void;
 
-  // Orders, BNPL & Save to Buy Data
+  // Orders & Save to Buy Data
   orders: Order[];
   createOrder: (orderData: Omit<Order, 'id' | 'orderNumber' | 'date' | 'orderStatus'>) => Order;
   updateOrderStatus: (orderId: string, status: Order['orderStatus'], trackingNumber?: string) => void;
 
   saveToBuyPlans: SaveToBuyPlan[];
-  createSaveToBuyPlan: (productId: string, targetAmount: number, initialDeposit: number, frequency: SaveToBuyPlan['frequency'], channel?: 'Card' | 'Bank Transfer' | 'USSD') => SaveToBuyPlan;
-  addSaveToBuyDeposit: (planId: string, amount: number, channel: 'Card' | 'Bank Transfer' | 'USSD', proofImage?: string) => void;
   verifySaveToBuyDeposit: (planId: string, depositId: string) => void;
-
-  bnplPlans: BNPLPlan[];
-  createBnplPlan: (productId: string, bvnLast4: string, tenureWeeks?: number) => BNPLPlan;
-  payBnplInstallment: (planId: string, installmentNumber: number) => void;
 
   wholesaleInquiries: WholesaleInquiry[];
   submitWholesaleInquiry: (inquiry: Omit<WholesaleInquiry, 'id' | 'date' | 'status'>) => void;
@@ -104,7 +92,6 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-// Sample Orders for rich realistic history
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Navigation
   const [currentView, setCurrentViewState] = useState<'home' | 'catalog' | 'wholesale' | 'save-to-buy' | 'about-contact' | 'dashboard' | 'admin'>(() => {
@@ -194,9 +181,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [saveToBuySelectedProduct, setSaveToBuySelectedProduct] = useState<Product | null>(null);
   const [isSaveToBuyModalOpen, setIsSaveToBuyModalOpen] = useState(false);
 
-  const [bnplSelectedProduct, setBnplSelectedProduct] = useState<Product | null>(null);
-  const [isBnplModalOpen, setIsBnplModalOpen] = useState(false);
-
   const [isWholesaleInquiryModalOpen, setIsWholesaleInquiryModalOpen] = useState(false);
 
   // User
@@ -238,10 +222,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   const [saveToBuyPlans, setSaveToBuyPlans] = useState<SaveToBuyPlan[]>(() => {
-    return [];
-  });
-
-  const [bnplPlans, setBnplPlans] = useState<BNPLPlan[]>(() => {
     return [];
   });
 
@@ -521,87 +501,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showNotification(`Order status updated to "${status.replace('_', ' ')}"`);
   };
 
-  // Save to Buy
-  const createSaveToBuyPlan = (
-    productId: string,
-    targetAmount: number,
-    initialDeposit: number,
-    frequency: SaveToBuyPlan['frequency'],
-    channel: 'Card' | 'Bank Transfer' | 'USSD' = 'Card'
-  ): SaveToBuyPlan => {
-    const prod = products.find((p) => p.id === productId);
-    const planNumber = `STB-${Math.floor(10000 + Math.random() * 90000)}`;
-    const today = new Date().toISOString().split('T')[0];
-    const targetDateObj = new Date();
-    targetDateObj.setDate(targetDateObj.getDate() + 45); // default target 45 days
-
-    const newPlan: SaveToBuyPlan = {
-      id: `stb-${Date.now()}`,
-      planNumber,
-      productId,
-      productName: prod ? prod.name : 'iBUS Gadget',
-      productImage: prod ? prod.images[0] : BRAND_INFO.logoUrl,
-      targetAmount,
-      totalSaved: initialDeposit,
-      depositCount: initialDeposit > 0 ? 1 : 0,
-      startDate: today,
-      targetDate: targetDateObj.toISOString().split('T')[0],
-      frequency,
-      suggestedInstallment: Math.round((targetAmount - initialDeposit) / 4),
-      status: 'active',
-      deposits: initialDeposit > 0 ? [
-        {
-          id: `dep-${Date.now()}`,
-          amount: initialDeposit,
-          date: today,
-          reference: `STB-INIT-${Math.floor(1000 + Math.random() * 9000)}`,
-          verified: true,
-          channel
-        }
-      ] : []
-    };
-
-    setSaveToBuyPlans((prev) => [newPlan, ...prev]);
-    showNotification(`Save to Buy plan ${planNumber} created successfully!`);
-    return newPlan;
-  };
-
-  const addSaveToBuyDeposit = (
-    planId: string,
-    amount: number,
-    channel: 'Card' | 'Bank Transfer' | 'USSD',
-    proofImage?: string
-  ) => {
-    setSaveToBuyPlans((prev) =>
-      prev.map((plan) => {
-        if (plan.id === planId) {
-          const newTotal = plan.totalSaved + amount;
-          const isComplete = newTotal >= plan.targetAmount;
-          const newDeposit = {
-            id: `dep-${Date.now()}`,
-            amount,
-            date: new Date().toISOString().split('T')[0],
-            reference: `DEP-${Math.floor(100000 + Math.random() * 900000)}`,
-            proofImage,
-            verified: channel !== 'Bank Transfer', // auto-verify card/USSD, manual verify bank transfer receipt
-            channel
-          };
-
-          return {
-            ...plan,
-            totalSaved: newTotal,
-            depositCount: plan.depositCount + 1,
-            status: isComplete ? 'completed' : plan.status,
-            deposits: [newDeposit, ...plan.deposits]
-          };
-        }
-        return plan;
-      })
-    );
-    showNotification(`Deposit of ₦${amount.toLocaleString()} received!`);
-  };
-
-  const verifySaveToBuyDeposit = (planId: string, depositId: string) => {
+  // Save to Buy verification is performed through the payment-submission review flow.
+    const verifySaveToBuyDeposit = (planId: string, depositId: string) => {
     setSaveToBuyPlans((prev) =>
       prev.map((plan) => {
         if (plan.id === planId) {
@@ -614,81 +515,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       })
     );
     showNotification('Deposit receipt verified and approved');
-  };
-
-  // BNPL
-  const createBnplPlan = (productId: string, bvnLast4: string, tenureWeeks = 6): BNPLPlan => {
-    const prod = products.find((p) => p.id === productId);
-    const totalAmount = prod ? prod.price : 25000;
-    const initialDeposit = Math.round(totalAmount * 0.25);
-    const amountRemaining = totalAmount - initialDeposit;
-    const installmentCount = 3;
-    const installmentAmount = Math.round(amountRemaining / installmentCount);
-
-    const installments = Array.from({ length: installmentCount }).map((_, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() + (i + 1) * 14); // every 2 weeks
-      return {
-        installmentNumber: i + 2,
-        dueDate: d.toISOString().split('T')[0],
-        amount: installmentAmount,
-        paid: false
-      };
-    });
-
-    const newBnpl: BNPLPlan = {
-      id: `bnpl-${Date.now()}`,
-      applicationNumber: `BNPL-${Math.floor(1000 + Math.random() * 9000)}`,
-      productId,
-      productName: prod ? prod.name : 'iBUS Gadget',
-      productImage: prod ? prod.images[0] : BRAND_INFO.logoUrl,
-      totalAmount,
-      initialDeposit,
-      amountRemaining,
-      tenureWeeks,
-      customerBvnLast4: bvnLast4,
-      status: 'active',
-      installments: [
-        {
-          installmentNumber: 1,
-          dueDate: new Date().toISOString().split('T')[0],
-          amount: initialDeposit,
-          paid: true,
-          paidDate: new Date().toISOString().split('T')[0]
-        },
-        ...installments
-      ]
-    };
-
-    setBnplPlans((prev) => [newBnpl, ...prev]);
-    showNotification(`BNPL approved! 25% down payment confirmed.`);
-    return newBnpl;
-  };
-
-  const payBnplInstallment = (planId: string, installmentNumber: number) => {
-    setBnplPlans((prev) =>
-      prev.map((plan) => {
-        if (plan.id === planId) {
-          let paidAmount = 0;
-          const updatedInstallments = plan.installments.map((inst) => {
-            if (inst.installmentNumber === installmentNumber && !inst.paid) {
-              paidAmount = inst.amount;
-              return { ...inst, paid: true, paidDate: new Date().toISOString().split('T')[0] };
-            }
-            return inst;
-          });
-          const allPaid = updatedInstallments.every((inst) => inst.paid);
-          return {
-            ...plan,
-            amountRemaining: Math.max(0, plan.amountRemaining - paidAmount),
-            status: allPaid ? 'completed' : plan.status,
-            installments: updatedInstallments
-          };
-        }
-        return plan;
-      })
-    );
-    showNotification(`Installment #${installmentNumber} payment confirmed.`);
   };
 
   // Wholesale Inquiries
@@ -756,10 +582,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setSaveToBuySelectedProduct,
         isSaveToBuyModalOpen,
         setIsSaveToBuyModalOpen,
-        bnplSelectedProduct,
-        setBnplSelectedProduct,
-        isBnplModalOpen,
-        setIsBnplModalOpen,
         isWholesaleInquiryModalOpen,
         setIsWholesaleInquiryModalOpen,
         user,
@@ -771,12 +593,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         createOrder,
         updateOrderStatus,
         saveToBuyPlans,
-        createSaveToBuyPlan,
-        addSaveToBuyDeposit,
         verifySaveToBuyDeposit,
-        bnplPlans,
-        createBnplPlan,
-        payBnplInstallment,
         wholesaleInquiries,
         submitWholesaleInquiry,
         updateInquiryStatus,
