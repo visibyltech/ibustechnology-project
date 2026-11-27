@@ -88,15 +88,20 @@ export async function approveOrRejectPayment(
       throw new Error('This payment has already been reviewed or no longer exists.');
     }
 
-    if (decision === 'approved' && payment.paymentType === 'order' && payment.orderId) {
+    if (payment.paymentType === 'order' && payment.orderId) {
       const orderRef = doc(db, 'orders', payment.orderId);
       const orderSnap = await transaction.get(orderRef);
       if (!orderSnap.exists()) throw new Error('The linked order could not be found.');
-      transaction.update(orderRef, {
+      transaction.update(orderRef, decision === 'approved' ? {
         paymentStatus: 'paid',
         orderStatus: 'confirmed',
         paymentReference: payment.id,
         paymentVerifiedAt: serverTimestamp()
+      } : {
+        paymentStatus: 'failed',
+        orderStatus: 'pending_payment',
+        paymentReviewNote: reviewNote,
+        paymentReviewedAt: serverTimestamp()
       });
     }
 
