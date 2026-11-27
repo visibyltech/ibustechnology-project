@@ -231,7 +231,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isWholesaleCustomer: false
       });
       setIsAdminEmailRecognized(recognizedAdmin);
-      setIsAdminAuthenticated(recognizedAdmin && currentUser.emailVerified);
+      setIsAdminAuthenticated(recognizedAdmin);
       setIsAuthReady(true);
     });
 
