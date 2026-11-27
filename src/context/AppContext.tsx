@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { auth, db } from '../lib/firebase';
 import { 
   Product, 
   ProductCategory, 
@@ -414,6 +415,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const saved = localStorage.getItem('ibus_inquiries');
     return saved ? JSON.parse(saved) : [];
   });
+
+  // Firestore is the shared source of truth for customer orders and Save to Buy
+  // plans. LocalStorage remains only as a non-authoritative cache for the UI.
+  useEffect(() => {
+    if (!user?.id) {
+      setOrders([]);
+      setSaveToBuyPlans([]);
+      return;
+    }
+
+    const ordersQuery = isAdminAuthenticated
+      ? query(collection(db, 'orders'))
+      : query(collection(db, 'orders'), where('customerUid', '==', user.id));
+    const plansQuery = isAdminAuthenticated
+      ? query(collection(db, 'saveToBuyPlans'))
+      : query(collection(db, 'saveToBuyPlans'), where('customerUid', '==', user.id));
+
+    const stopOrders = onSnapshot(ordersQuery, (snapshot) => {
+      setOrders(snapshot.docs.map((item) => ({ id: item.id, ...item.data() } as Order)));
+    }, (error) => showNotification(error.message || 'Unable to load orders from Firestore'));
+
+    const stopPlans = onSnapshot(plansQuery, (snapshot) => {
+      setSaveToBuyPlans(snapshot.docs.map((item) => ({ id: item.id, ...item.data() } as SaveToBuyPlan)));
+    }, (error) => showNotification(error.message || 'Unable to load Save to Buy plans'));
+
+    return () => {
+      stopOrders();
+      stopPlans();
+    };
+  }, [user?.id, isAdminAuthenticated]);
 
   // Notification toast
   const [notification, setNotification] = useState<string | null>(null);
