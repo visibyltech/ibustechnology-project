@@ -70,6 +70,8 @@ interface AppContextType {
   user: UserProfile | null;
   setUser: (user: UserProfile | null) => void;
   isAdminAuthenticated: boolean;
+  isAdminEmailRecognized: boolean;
+  isAuthReady: boolean;
   setIsAdminAuthenticated: (val: boolean) => void;
   logout: () => void;
 
@@ -186,31 +188,46 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // User
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
+  const [isAdminEmailRecognized, setIsAdminEmailRecognized] = useState<boolean>(false);
+  const [isAuthReady, setIsAuthReady] = useState<boolean>(false);
 
   // Firebase Authentication is the source of truth for customer sessions.
+  // Wait for Firebase to restore the session before rendering protected routes.
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (!firebaseUser) {
         setUser(null);
         setIsAdminAuthenticated(false);
+        setIsAdminEmailRecognized(false);
+        setIsAuthReady(true);
         return;
       }
 
-      const email = (firebaseUser.email || '').toLowerCase();
+      try {
+        await firebaseUser.reload();
+      } catch (error) {
+        console.error('Unable to refresh the signed-in account:', error);
+      }
+
+      const currentUser = auth.currentUser || firebaseUser;
+      const email = (currentUser.email || '').toLowerCase();
       const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS || '')
         .split(',')
         .map((value: string) => value.trim().toLowerCase())
         .filter(Boolean);
+      const recognizedAdmin = adminEmails.includes(email);
 
       setUser({
-        id: firebaseUser.uid,
-        name: firebaseUser.displayName || email.split('@')[0] || 'iBUS Customer',
+        id: currentUser.uid,
+        name: currentUser.displayName || email.split('@')[0] || 'iBUS Customer',
         email,
         phone: '',
         address: { street: '', city: '', state: '' },
         isWholesaleCustomer: false
       });
-      setIsAdminAuthenticated(adminEmails.includes(email));
+      setIsAdminEmailRecognized(recognizedAdmin);
+      setIsAdminAuthenticated(recognizedAdmin && currentUser.emailVerified);
+      setIsAuthReady(true);
     });
 
     return unsubscribe;
@@ -229,33 +246,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return [];
   });
 
-  // Public product catalogue is shared through Firestore. On a fresh database,
-  // the verified administrator seeds the existing starter catalogue once.
+  // The public catalogue is read from Firestore. An administrator explicitly
+  // migrates the existing browser catalogue from the Admin Console so no local
+  // products are silently overwritten by a starter-only seed.
   useEffect(() => {
-    const stop = onSnapshot(collection(db, 'products'), async (snapshot) => {
+    const stop = onSnapshot(collection(db, 'products'), (snapshot) => {
       if (!snapshot.empty) {
         setProducts(snapshot.docs.map((item) => ({ id: item.id, ...item.data() } as Product)));
-        return;
-      }
-
-      if (isAdminAuthenticated && !hasAttemptedProductSeed) {
-        setHasAttemptedProductSeed(true);
-        try {
-          const batch = writeBatch(db);
-          INITIAL_PRODUCTS.forEach((product) => {
-            batch.set(doc(db, 'products', product.id), product);
-          });
-          await batch.commit();
-        } catch (error) {
-          console.error('Unable to seed the initial product catalogue:', error);
-          showNotification('Could not publish the starter catalogue. Please check that Firestore rules are published.');
-        }
       }
     }, (error) => {
       console.error('Unable to load the Firestore product catalogue:', error);
+      showNotification('Could not load the permanent product catalogue. Check Firestore access.');
     });
     return stop;
-  }, [isAdminAuthenticated, hasAttemptedProductSeed]);
+  }, []);
 
   // Firestore is the shared source of truth for customer orders and Save to Buy
   // plans. LocalStorage remains only as a non-authoritative cache for the UI.
@@ -588,6 +592,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setUser,
         isAdminAuthenticated,
         setIsAdminAuthenticated,
+        isAdminEmailRecognized,
+        isAuthReady,
         logout,
         orders,
         createOrder,
