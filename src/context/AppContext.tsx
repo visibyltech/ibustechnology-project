@@ -632,7 +632,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Product CRUD
   const addProduct = (newProd: Omit<Product, 'id'>) => {
-    const id = `ibus-${Date.now()}`;
     void addDoc(collection(db, 'products'), { ...newProd, createdAt: new Date().toISOString() })
       .then(() => showNotification(`Added "${newProd.name}" to the shared product catalogue`))
       .catch((error) => showNotification(error instanceof Error ? error.message : 'Unable to publish product to Firestore'));
