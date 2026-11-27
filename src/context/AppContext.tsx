@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { auth } from '../lib/firebase';
 import { 
   Product, 
   ProductCategory, 
@@ -360,15 +362,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isWholesaleInquiryModalOpen, setIsWholesaleInquiryModalOpen] = useState(false);
 
   // User
-  const [user, setUser] = useState<UserProfile | null>(() => {
-    const saved = localStorage.getItem('ibus_user');
-    if (saved) {
-      const savedUser = JSON.parse(saved);
-      return savedUser?.id?.startsWith('usr-') ? null : savedUser;
-    }
-    return null;
-  });
+  const [user, setUser] = useState<UserProfile | null>(null);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
+
+  // Firebase Authentication is the source of truth for customer sessions.
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (!firebaseUser) {
+        setUser(null);
+        setIsAdminAuthenticated(false);
+        return;
+      }
+
+      const email = (firebaseUser.email || '').toLowerCase();
+      const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS || '')
+        .split(',')
+        .map((value: string) => value.trim().toLowerCase())
+        .filter(Boolean);
+
+      setUser({
+        id: firebaseUser.uid,
+        name: firebaseUser.displayName || email.split('@')[0] || 'iBUS Customer',
+        email,
+        phone: '',
+        address: { street: '', city: '', state: '' },
+        isWholesaleCustomer: false
+      });
+      setIsAdminAuthenticated(adminEmails.includes(email));
+    });
+
+    return unsubscribe;
+  }, []);
 
   // Orders, BNPL, STB, Inquiries
   const [orders, setOrders] = useState<Order[]>(() => {
@@ -426,12 +450,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     localStorage.setItem('ibus_inquiries', JSON.stringify(wholesaleInquiries));
   }, [wholesaleInquiries]);
-
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem('ibus_user', JSON.stringify(user));
-    }
-  }, [user]);
 
   const showNotification = (msg: string) => {
     setNotification(msg);
@@ -809,10 +827,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showNotification('Customer sign-in is being connected to Firebase. Demo sign-in has been disabled.');
   };
 
-  const logout = () => {
-    setUser(null);
-    setIsAdminAuthenticated(false);
-    showNotification('Logged out successfully');
+  const logout = async () => {
+    try {
+      await signOut(auth);
+      showNotification('Logged out successfully');
+    } catch (error) {
+      showNotification('Unable to sign out. Please try again.');
+    }
   };
 
   return (
