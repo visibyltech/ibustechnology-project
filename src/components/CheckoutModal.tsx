@@ -50,7 +50,6 @@ export const CheckoutModal: React.FC = () => {
     checkoutInitialMode, 
     createOrder,
     createSaveToBuyPlan,
-    createBnplPlan,
     clearCart,
     user,
     setCurrentView
@@ -58,7 +57,7 @@ export const CheckoutModal: React.FC = () => {
 
   // Active step: 'details' -> 'payment' -> 'confirmed'
   const [step, setStep] = useState<'details' | 'payment' | 'confirmed'>('details');
-  const [paymentMode, setPaymentMode] = useState<'pay_now' | 'bnpl' | 'save_to_buy'>(checkoutInitialMode);
+  const [paymentMode, setPaymentMode] = useState<'pay_now' | 'save_to_buy'>(checkoutInitialMode);
 
   // Customer Form
   const [customerName, setCustomerName] = useState(user?.name || '');
@@ -77,10 +76,6 @@ export const CheckoutModal: React.FC = () => {
   const [copiedAccount, setCopiedAccount] = useState(false);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [isUploadingReceipt, setIsUploadingReceipt] = useState(false);
-
-  // BNPL Specific states
-  const [bvnLast4, setBvnLast4] = useState('8921');
-  const [employmentType, setEmploymentType] = useState('Salaried Professional');
 
   // Save to Buy specific states
   const [stbFrequency, setStbFrequency] = useState<'weekly' | 'biweekly' | 'monthly'>('biweekly');
@@ -178,11 +173,6 @@ export const CheckoutModal: React.FC = () => {
     } finally {
       setIsUploadingReceipt(false);
     }
-  };
-
-  const executeBnpl = () => {
-    setIsProcessingPayment(false);
-    window.alert('Buy Now Pay Later is not enabled yet. No credit application or payment has been submitted.');
   };
 
   const executeSaveToBuy = () => {
@@ -385,22 +375,6 @@ export const CheckoutModal: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={() => setPaymentMode('bnpl')}
-                  className={`p-3 rounded-xl border text-left transition-all ${
-                    paymentMode === 'bnpl' 
-                      ? 'bg-blue-500/10 border-blue-400 text-white' 
-                      : 'bg-[#151923] border-[#252b3a] text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5 text-blue-400 font-bold text-xs mb-1">
-                    <CreditCard className="w-3.5 h-3.5" />
-                    <span>BNPL (0%)</span>
-                  </div>
-                  <p className="text-[10px] text-slate-400">Pay 25% today, 3 instalments</p>
-                </button>
-
-                <button
-                  type="button"
                   onClick={() => setPaymentMode('save_to_buy')}
                   className={`p-3 rounded-xl border text-left transition-all ${
                     paymentMode === 'save_to_buy' 
@@ -475,74 +449,6 @@ export const CheckoutModal: React.FC = () => {
                       {isUploadingReceipt ? 'Uploading receipt & submitting…' : 'Submit Transfer Receipt'}
                     </button>
                 </div>
-              </div>
-            )}
-
-            {/* BUY NOW PAY LATER PATHWAY */}
-            {paymentMode === 'bnpl' && (
-              <div className="space-y-4">
-                <div className="pb-3 border-b border-[#202533] flex items-center justify-between">
-                  <span className="text-xs font-bold text-blue-400 uppercase font-mono tracking-wider">
-                    Buy Now, Pay Later (0% Interest Rate)
-                  </span>
-                  <span className="text-xs font-mono text-white">4 Equal Split Payments</span>
-                </div>
-
-                <div className="bg-blue-950/30 border border-blue-500/30 rounded-xl p-4 space-y-2 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-slate-300">Total Purchase:</span>
-                    <span className="text-white font-mono font-bold">{formatNaira(totalAmount)}</span>
-                  </div>
-                  <div className="flex justify-between font-bold text-amber-400">
-                    <span>Due Today (25% Initial Down Payment):</span>
-                    <span className="font-mono">{formatNaira(Math.round(totalAmount * 0.25))}</span>
-                  </div>
-                  <div className="flex justify-between text-slate-400 text-[11px]">
-                    <span>3 Fortnightly Installments:</span>
-                    <span className="font-mono">{formatNaira(Math.round((totalAmount * 0.75) / 3))} each</span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div>
-                    <label className="text-[11px] text-slate-300 block mb-1">Last 4 Digits of BVN / NIN *</label>
-                    <input 
-                      type="text" 
-                      maxLength={4}
-                      value={bvnLast4}
-                      onChange={(e) => setBvnLast4(e.target.value)}
-                      placeholder="e.g. 8921"
-                      className="w-full bg-[#151923] border border-[#273042] rounded-lg px-3 py-2 font-mono text-center outline-none text-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] text-slate-300 block mb-1">Employment / Business Status</label>
-                    <select
-                      value={employmentType}
-                      onChange={(e) => setEmploymentType(e.target.value)}
-                      className="w-full bg-[#151923] border border-[#273042] rounded-lg px-3 py-2 text-white outline-none cursor-pointer"
-                    >
-                      <option>Salaried Professional</option>
-                      <option>Business Owner / Trader</option>
-                      <option>Tech & Creative Freelancer</option>
-                    </select>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  disabled={isProcessingPayment}
-                  onClick={executeBnpl}
-                  className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-xl shadow-lg transition-colors flex items-center justify-center gap-2"
-                >
-                  <CreditCard className="w-4 h-4" />
-                  <span>
-                    {isProcessingPayment 
-                      ? 'Approving credit limit...' 
-                      : `Pay Initial 25% (${formatNaira(Math.round(totalAmount * 0.25))}) & Confirm BNPL`}
-                  </span>
-                </button>
               </div>
             )}
 
