@@ -38,6 +38,17 @@ export const CustomerDashboard: React.FC = () => {
 
   const wishlistProducts = products.filter((p) => wishlist.includes(p.id));
 
+  if (!user) {
+    return (
+      <section className="mx-auto my-16 max-w-xl rounded-2xl border border-[#343b48] bg-[#1a1f28] p-8 text-center">
+        <User className="mx-auto h-10 w-10 text-amber-400" />
+        <h1 className="mt-4 text-xl font-bold text-white">Sign in to your iBUS account</h1>
+        <p className="mt-2 text-sm text-slate-300">Your orders, saved products and payment records are private. Sign in or create an account to view your customer portal.</p>
+        <button onClick={() => window.dispatchEvent(new Event('ibus:open-auth'))} className="mt-5 rounded-lg bg-amber-400 px-5 py-3 text-xs font-bold text-black">Sign In / Create Account</button>
+      </section>
+    );
+  }
+
   return (
     <div className="py-10 px-4 sm:px-6 max-w-7xl mx-auto space-y-8">
       
