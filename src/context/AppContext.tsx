@@ -1,4 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { addDoc, collection, deleteDoc, doc, onSnapshot, query, updateDoc, where, writeBatch } from 'firebase/firestore';
+import { auth, db } from '../lib/firebase';
 import { 
   Product, 
   ProductCategory, 
@@ -295,6 +298,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const saved = localStorage.getItem('ibus_products');
     return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
   });
+  const [hasAttemptedProductSeed, setHasAttemptedProductSeed] = useState(false);
 
   // Cart
   const [cart, setCart] = useState<CartItem[]>(() => {
@@ -306,7 +310,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Wishlist
   const [wishlist, setWishlist] = useState<string[]>(() => {
     const saved = localStorage.getItem('ibus_wishlist');
-    return saved ? JSON.parse(saved) : ['ibus-buds-3', 'ibus-pb-30000'];
+    return saved ? JSON.parse(saved) : [];
   });
 
   // Product details participate in browser history. Pressing Back closes the
@@ -360,44 +364,116 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isWholesaleInquiryModalOpen, setIsWholesaleInquiryModalOpen] = useState(false);
 
   // User
-  const [user, setUser] = useState<UserProfile | null>(() => {
-    const saved = localStorage.getItem('ibus_user');
-    if (saved) return JSON.parse(saved);
-    return {
-      id: 'usr-default',
-      name: 'Chidera Anyanwu',
-      email: 'chidera.gadgets@gmail.com',
-      phone: '+234 810 220 8521',
-      address: {
-        street: 'Block 4, Flat 12, Festac Town',
-        city: 'Amuwo-Odofin',
-        state: 'Lagos'
-      },
-      isWholesaleCustomer: false
-    };
-  });
+  const [user, setUser] = useState<UserProfile | null>(null);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
+
+  // Firebase Authentication is the source of truth for customer sessions.
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (!firebaseUser) {
+        setUser(null);
+        setIsAdminAuthenticated(false);
+        return;
+      }
+
+      const email = (firebaseUser.email || '').toLowerCase();
+      const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS || '')
+        .split(',')
+        .map((value: string) => value.trim().toLowerCase())
+        .filter(Boolean);
+
+      setUser({
+        id: firebaseUser.uid,
+        name: firebaseUser.displayName || email.split('@')[0] || 'iBUS Customer',
+        email,
+        phone: '',
+        address: { street: '', city: '', state: '' },
+        isWholesaleCustomer: false
+      });
+      setIsAdminAuthenticated(adminEmails.includes(email));
+    });
+
+    return unsubscribe;
+  }, []);
 
   // Orders, BNPL, STB, Inquiries
   const [orders, setOrders] = useState<Order[]>(() => {
     const saved = localStorage.getItem('ibus_orders');
-    return saved ? JSON.parse(saved) : INITIAL_ORDERS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [saveToBuyPlans, setSaveToBuyPlans] = useState<SaveToBuyPlan[]>(() => {
     const saved = localStorage.getItem('ibus_stb');
-    return saved ? JSON.parse(saved) : INITIAL_SAVINGS_PLANS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [bnplPlans, setBnplPlans] = useState<BNPLPlan[]>(() => {
     const saved = localStorage.getItem('ibus_bnpl');
-    return saved ? JSON.parse(saved) : INITIAL_BNPL_PLANS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [wholesaleInquiries, setWholesaleInquiries] = useState<WholesaleInquiry[]>(() => {
     const saved = localStorage.getItem('ibus_inquiries');
-    return saved ? JSON.parse(saved) : INITIAL_INQUIRIES;
+    return saved ? JSON.parse(saved) : [];
   });
+
+  // Public product catalogue is shared through Firestore. On a fresh database,
+  // the verified administrator seeds the existing starter catalogue once.
+  useEffect(() => {
+    const stop = onSnapshot(collection(db, 'products'), async (snapshot) => {
+      if (!snapshot.empty) {
+        setProducts(snapshot.docs.map((item) => ({ id: item.id, ...item.data() } as Product)));
+        return;
+      }
+
+      if (isAdminAuthenticated && !hasAttemptedProductSeed) {
+        setHasAttemptedProductSeed(true);
+        try {
+          const batch = writeBatch(db);
+          INITIAL_PRODUCTS.forEach((product) => {
+            batch.set(doc(db, 'products', product.id), product);
+          });
+          await batch.commit();
+        } catch (error) {
+          console.error('Unable to seed the initial product catalogue:', error);
+          showNotification('Could not publish the starter catalogue. Please check that Firestore rules are published.');
+        }
+      }
+    }, (error) => {
+      console.error('Unable to load the Firestore product catalogue:', error);
+    });
+    return stop;
+  }, [isAdminAuthenticated, hasAttemptedProductSeed]);
+
+  // Firestore is the shared source of truth for customer orders and Save to Buy
+  // plans. LocalStorage remains only as a non-authoritative cache for the UI.
+  useEffect(() => {
+    if (!user?.id) {
+      setOrders([]);
+      setSaveToBuyPlans([]);
+      return;
+    }
+
+    const ordersQuery = isAdminAuthenticated
+      ? query(collection(db, 'orders'))
+      : query(collection(db, 'orders'), where('customerUid', '==', user.id));
+    const plansQuery = isAdminAuthenticated
+      ? query(collection(db, 'saveToBuyPlans'))
+      : query(collection(db, 'saveToBuyPlans'), where('customerUid', '==', user.id));
+
+    const stopOrders = onSnapshot(ordersQuery, (snapshot) => {
+      setOrders(snapshot.docs.map((item) => ({ id: item.id, ...item.data() } as Order)));
+    }, (error) => showNotification(error.message || 'Unable to load orders from Firestore'));
+
+    const stopPlans = onSnapshot(plansQuery, (snapshot) => {
+      setSaveToBuyPlans(snapshot.docs.map((item) => ({ id: item.id, ...item.data() } as SaveToBuyPlan)));
+    }, (error) => showNotification(error.message || 'Unable to load Save to Buy plans'));
+
+    return () => {
+      stopOrders();
+      stopPlans();
+    };
+  }, [user?.id, isAdminAuthenticated]);
 
   // Notification toast
   const [notification, setNotification] = useState<string | null>(null);
@@ -434,12 +510,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     localStorage.setItem('ibus_inquiries', JSON.stringify(wholesaleInquiries));
   }, [wholesaleInquiries]);
-
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem('ibus_user', JSON.stringify(user));
-    }
-  }, [user]);
 
   const showNotification = (msg: string) => {
     setNotification(msg);
@@ -562,20 +632,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Product CRUD
   const addProduct = (newProd: Omit<Product, 'id'>) => {
-    const id = `ibus-${Date.now()}`;
-    const product: Product = { ...newProd, id };
-    setProducts((prev) => [product, ...prev]);
-    showNotification(`Added "${product.name}" to inventory`);
+    void addDoc(collection(db, 'products'), { ...newProd, createdAt: new Date().toISOString() })
+      .then(() => showNotification(`Added "${newProd.name}" to the shared product catalogue`))
+      .catch((error) => showNotification(error instanceof Error ? error.message : 'Unable to publish product to Firestore'));
   };
 
   const updateProduct = (id: string, updates: Partial<Product>) => {
-    setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...updates } : p)));
-    showNotification('Product inventory updated');
+    void updateDoc(doc(db, 'products', id), updates)
+      .then(() => showNotification('Product inventory updated for all customers'))
+      .catch((error) => showNotification(error instanceof Error ? error.message : 'Unable to update product in Firestore'));
   };
 
   const deleteProduct = (id: string) => {
-    setProducts((prev) => prev.filter((p) => p.id !== id));
-    showNotification('Product deleted from catalog');
+    void deleteDoc(doc(db, 'products', id))
+      .then(() => showNotification('Product deleted from the shared catalogue'))
+      .catch((error) => showNotification(error instanceof Error ? error.message : 'Unable to delete product from Firestore'));
   };
 
   // Open Checkout in different modes
@@ -813,30 +884,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // User Actions
-  const loginAsDemoUser = (asWholesale = false) => {
-    setUser({
-      id: 'usr-chidera',
-      name: asWholesale ? 'Emeka Umeh (Umeh Electronics Nig)' : 'Chidera Anyanwu',
-      email: asWholesale ? 'umehelectronics@gmail.com' : 'chidera.gadgets@gmail.com',
-      phone: '+234 810 220 8521',
-      address: {
-        street: asWholesale ? 'Shop 18, Block B, Alaba Market' : '14 Admiralty Way, Lekki',
-        city: asWholesale ? 'Ojo' : 'Lagos',
-        state: 'Lagos'
-      },
-      isWholesaleCustomer: asWholesale,
-      businessName: asWholesale ? 'Umeh Electronics Nig Enterprises' : undefined
-    });
-    if (asWholesale) {
-      setIsWholesaleMode(true);
-    }
-    showNotification(`Logged in as ${asWholesale ? 'Wholesale Partner' : 'Retail Customer'}`);
+  const loginAsDemoUser = (_asWholesale = false) => {
+    showNotification('Customer sign-in is being connected to Firebase. Demo sign-in has been disabled.');
   };
 
-  const logout = () => {
-    setUser(null);
-    setIsAdminAuthenticated(false);
-    showNotification('Logged out successfully');
+  const logout = async () => {
+    try {
+      await signOut(auth);
+      showNotification('Logged out successfully');
+    } catch (error) {
+      showNotification('Unable to sign out. Please try again.');
+    }
   };
 
   return (

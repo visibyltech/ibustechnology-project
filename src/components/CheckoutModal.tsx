@@ -4,7 +4,6 @@ import {
   X, 
   ShieldCheck, 
   CreditCard, 
-  Building, 
   Phone, 
   CheckCircle2, 
   Truck, 
@@ -20,6 +19,8 @@ import {
 import { useApp, formatNaira } from '../context/AppContext';
 import { PaymentMethod, Order } from '../types';
 import { BRAND_INFO } from '../data/products';
+import { uploadImageToCloudinary } from '../lib/cloudinary';
+import { submitOrderBankTransfer } from '../lib/paymentSubmissions';
 
 const NIGERIAN_STATES = [
   { name: 'Lagos', fee: 2500, region: 'lagos' },
@@ -50,6 +51,7 @@ export const CheckoutModal: React.FC = () => {
     createOrder,
     createSaveToBuyPlan,
     createBnplPlan,
+    clearCart,
     user,
     setCurrentView
   } = useApp();
@@ -68,17 +70,13 @@ export const CheckoutModal: React.FC = () => {
   const [landmark, setLandmark] = useState('');
   const [deliveryNotes, setDeliveryNotes] = useState('');
 
-  // Payment Gateway Simulator States
-  const [payGatewayTab, setPayGatewayTab] = useState<'card' | 'transfer' | 'ussd'>('card');
-  const [cardNumber, setCardNumber] = useState('5399 4100 8821 9012');
-  const [cardExpiry, setCardExpiry] = useState('11/28');
-  const [cardCvv, setCardCvv] = useState('781');
-  const [cardOtp, setCardOtp] = useState('');
-  const [showOtpScreen, setShowOtpScreen] = useState(false);
+  // Payment Provider Setup Pending
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   // Bank Transfer virtual account states
   const [copiedAccount, setCopiedAccount] = useState(false);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [isUploadingReceipt, setIsUploadingReceipt] = useState(false);
 
   // BNPL Specific states
   const [bvnLast4, setBvnLast4] = useState('8921');
@@ -118,132 +116,78 @@ export const CheckoutModal: React.FC = () => {
   };
 
   const executePayNow = () => {
-    setIsProcessingPayment(true);
-    setTimeout(() => {
-      setIsProcessingPayment(false);
-      const newOrder = createOrder({
+    setIsProcessingPayment(false);
+    window.alert('Online card payments are not enabled yet. No payment has been taken.');
+  };
+
+  const submitBankTransferReceipt = async () => {
+    if (!user?.id) {
+      window.alert('Please sign in or create an account before submitting a bank transfer receipt.');
+      return;
+    }
+    if (!receiptFile) {
+      window.alert('Please choose a screenshot or photo of your bank transfer receipt.');
+      return;
+    }
+    if (!cart.length) {
+      window.alert('Your cart is empty. Please add products before checkout.');
+      return;
+    }
+
+    setIsUploadingReceipt(true);
+    try {
+      const uploaded = await uploadImageToCloudinary(receiptFile, 'ibus/payment-receipts');
+      const orderData = {
         customerName,
-        customerEmail: customerEmail || 'customer@gmail.com',
+        customerEmail,
         customerPhone,
-        deliveryAddress: {
-          street,
-          city: city || 'Center',
-          state: selectedState,
-          landmark
-        },
-        items: cart.map((i) => ({
-          productId: i.product.id,
-          productName: i.product.name,
-          image: i.product.images[0] || BRAND_INFO.logoUrl,
-          quantity: i.quantity,
-          unitPrice: i.unitPrice,
-          isWholesale: i.isWholesale
+        deliveryAddress: { street, city, state: selectedState, landmark },
+        items: cart.map((item) => ({
+          productId: item.product.id,
+          productName: item.product.name,
+          image: item.product.images[0] || '',
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          isWholesale: item.isWholesale
         })),
         subtotal: cartSubtotal,
         shippingFee,
         discount: 0,
         total: totalAmount,
-        paymentMethod: 'pay_now_paystack',
-        paymentStatus: 'paid',
-        paymentReference: `PSTK_${Math.floor(1000000000 + Math.random() * 9000000000)}`,
+        paymentMethod: 'bank_transfer' as const,
+        paymentStatus: 'pending' as const,
+        orderStatus: 'pending_payment' as const,
         notes: deliveryNotes
+      };
+      const result = await submitOrderBankTransfer(user.id, orderData, {
+        secureUrl: uploaded.secureUrl,
+        publicId: uploaded.publicId
       });
-
-      setCompletedOrder(newOrder);
+      const localOrder: Order = {
+        ...orderData,
+        id: result.orderId,
+        orderNumber: result.orderNumber,
+        date: new Date().toISOString().replace('T', ' ').slice(0, 16),
+        trackingCourier: 'Pending payment verification'
+      };
+      setCompletedOrder(localOrder);
+      clearCart();
       setStep('confirmed');
-      triggerConfetti();
-    }, 1500);
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'Unable to submit your receipt. Please try again.');
+    } finally {
+      setIsUploadingReceipt(false);
+    }
   };
 
   const executeBnpl = () => {
-    if (bvnLast4.length !== 4) {
-      alert('Please provide the last 4 digits of your BVN or NIN for credit verification.');
-      return;
-    }
-    setIsProcessingPayment(true);
-    setTimeout(() => {
-      setIsProcessingPayment(false);
-      // Create BNPL record for primary product
-      const primaryProduct = cart[0]?.product;
-      if (primaryProduct) {
-        createBnplPlan(primaryProduct.id, bvnLast4, 6);
-      }
-
-      const newOrder = createOrder({
-        customerName,
-        customerEmail: customerEmail || 'customer@gmail.com',
-        customerPhone,
-        deliveryAddress: {
-          street,
-          city: city || 'City',
-          state: selectedState,
-          landmark
-        },
-        items: cart.map((i) => ({
-          productId: i.product.id,
-          productName: i.product.name,
-          image: i.product.images[0] || BRAND_INFO.logoUrl,
-          quantity: i.quantity,
-          unitPrice: i.unitPrice,
-          isWholesale: i.isWholesale
-        })),
-        subtotal: cartSubtotal,
-        shippingFee,
-        discount: 0,
-        total: totalAmount,
-        paymentMethod: 'bnpl',
-        paymentStatus: 'partial',
-        paymentReference: `BNPL_INIT_${Math.floor(100000 + Math.random() * 900000)}`,
-        notes: `BNPL 25% down payment approved. BVN hash: ***${bvnLast4}`
-      });
-
-      setCompletedOrder(newOrder);
-      setStep('confirmed');
-      triggerConfetti();
-    }, 1200);
+    setIsProcessingPayment(false);
+    window.alert('Buy Now Pay Later is not enabled yet. No credit application or payment has been submitted.');
   };
 
   const executeSaveToBuy = () => {
-    setIsProcessingPayment(true);
-    setTimeout(() => {
-      setIsProcessingPayment(false);
-      const primaryProduct = cart[0]?.product;
-      if (primaryProduct) {
-        createSaveToBuyPlan(primaryProduct.id, cartSubtotal, stbInitialDeposit, stbFrequency, 'Card');
-      }
-
-      const newOrder = createOrder({
-        customerName,
-        customerEmail: customerEmail || 'customer@gmail.com',
-        customerPhone,
-        deliveryAddress: {
-          street,
-          city: city || 'City',
-          state: selectedState,
-          landmark
-        },
-        items: cart.map((i) => ({
-          productId: i.product.id,
-          productName: i.product.name,
-          image: i.product.images[0] || BRAND_INFO.logoUrl,
-          quantity: i.quantity,
-          unitPrice: i.unitPrice,
-          isWholesale: i.isWholesale
-        })),
-        subtotal: cartSubtotal,
-        shippingFee,
-        discount: 0,
-        total: totalAmount,
-        paymentMethod: 'save_to_buy',
-        paymentStatus: 'partial',
-        paymentReference: `STB_LOCK_${Math.floor(100000 + Math.random() * 900000)}`,
-        notes: `Save to Buy initiated with initial lock of ${formatNaira(stbInitialDeposit)}`
-      });
-
-      setCompletedOrder(newOrder);
-      setStep('confirmed');
-      triggerConfetti();
-    }, 1200);
+    setIsProcessingPayment(false);
+    window.alert('Save to Buy payments are not enabled yet. No deposit has been collected and no savings plan has been activated.');
   };
 
   const copyToClipboard = (text: string) => {
@@ -436,7 +380,7 @@ export const CheckoutModal: React.FC = () => {
                     <Zap className="w-3.5 h-3.5" />
                     <span>Pay Now</span>
                   </div>
-                  <p className="text-[10px] text-slate-400">Paystack / Bank Transfer / USSD</p>
+                  <p className="text-[10px] text-slate-400">Bank Transfer only</p>
                 </button>
 
                 <button
@@ -498,7 +442,7 @@ export const CheckoutModal: React.FC = () => {
                 <div className="flex items-center justify-between pb-3 border-b border-[#202533]">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-white uppercase font-mono tracking-wider">
-                      Paystack Nigeria Payment Gateway
+                      Bank Transfer
                     </span>
                   </div>
                   <span className="text-sm font-black text-amber-400 font-mono">
@@ -506,180 +450,31 @@ export const CheckoutModal: React.FC = () => {
                   </span>
                 </div>
 
-                {/* Gateway Tabs */}
-                <div className="flex items-center gap-2 mt-4">
-                  <button
-                    type="button"
-                    onClick={() => setPayGatewayTab('card')}
-                    className={`flex-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 border transition-all ${
-                      payGatewayTab === 'card' 
-                        ? 'bg-amber-400 text-black border-amber-400' 
-                        : 'bg-[#151923] text-slate-300 border-[#273042]'
-                    }`}
-                  >
-                    <CreditCard className="w-3.5 h-3.5" />
-                    <span>Debit Card (Mastercard / Visa / Verve)</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setPayGatewayTab('transfer')}
-                    className={`flex-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 border transition-all ${
-                      payGatewayTab === 'transfer' 
-                        ? 'bg-amber-400 text-black border-amber-400' 
-                        : 'bg-[#151923] text-slate-300 border-[#273042]'
-                    }`}
-                  >
-                    <Building className="w-3.5 h-3.5" />
-                    <span>Bank Transfer</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setPayGatewayTab('ussd')}
-                    className={`flex-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 border transition-all ${
-                      payGatewayTab === 'ussd' 
-                        ? 'bg-amber-400 text-black border-amber-400' 
-                        : 'bg-[#151923] text-slate-300 border-[#273042]'
-                    }`}
-                  >
-                    <Phone className="w-3.5 h-3.5" />
-                    <span>USSD</span>
-                  </button>
-                </div>
-
-                {/* Sub-view: Card Form */}
-                {payGatewayTab === 'card' && (
-                  <div className="mt-4 p-4 rounded-xl bg-[#131620] border border-[#232938] space-y-3">
-                    <div>
-                      <label className="text-[11px] text-slate-300 block mb-1">Card Number (Nigerian Verve / Master / Visa)</label>
-                      <input 
-                        type="text" 
-                        value={cardNumber}
-                        onChange={(e) => setCardNumber(e.target.value)}
-                        className="w-full bg-[#181d28] border border-[#293244] rounded-lg px-3 py-2 text-xs text-white font-mono tracking-widest outline-none"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-[11px] text-slate-300 block mb-1">Expiry Date</label>
-                        <input 
-                          type="text" 
-                          value={cardExpiry}
-                          onChange={(e) => setCardExpiry(e.target.value)}
-                          className="w-full bg-[#181d28] border border-[#293244] rounded-lg px-3 py-2 text-xs text-white font-mono outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[11px] text-slate-300 block mb-1">CVV</label>
-                        <input 
-                          type="password" 
-                          maxLength={3}
-                          value={cardCvv}
-                          onChange={(e) => setCardCvv(e.target.value)}
-                          className="w-full bg-[#181d28] border border-[#293244] rounded-lg px-3 py-2 text-xs text-white font-mono outline-none"
-                        />
-                      </div>
-                    </div>
-
-                    {showOtpScreen ? (
-                      <div className="p-3 bg-amber-400/10 border border-amber-400/30 rounded-lg space-y-2">
-                        <p className="text-xs text-white font-bold">Bank OTP Verification</p>
-                        <p className="text-[11px] text-slate-300">Enter the test OTP sent to your Nigerian phone number: <span className="font-mono text-amber-400">123456</span></p>
-                        <input 
-                          type="text" 
-                          placeholder="Enter 6-digit OTP"
-                          value={cardOtp}
-                          onChange={(e) => setCardOtp(e.target.value)}
-                          className="w-full bg-[#181d28] border border-amber-400 rounded-lg px-3 py-2 text-xs text-white font-mono text-center tracking-widest outline-none"
-                        />
-                      </div>
-                    ) : null}
-
-                    <button
-                      type="button"
-                      disabled={isProcessingPayment}
-                      onClick={() => {
-                        if (!showOtpScreen) {
-                          setShowOtpScreen(true);
-                        } else {
-                          executePayNow();
-                        }
-                      }}
-                      className="w-full mt-2 py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs rounded-xl shadow-lg transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Lock className="w-4 h-4" />
-                      <span>{isProcessingPayment ? 'Verifying with Paystack...' : showOtpScreen ? `Confirm Payment of ${formatNaira(totalAmount)}` : `Pay ${formatNaira(totalAmount)}`}</span>
-                    </button>
-                  </div>
-                )}
-
                 {/* Sub-view: Bank Transfer */}
-                {payGatewayTab === 'transfer' && (
-                  <div className="mt-4 p-4 rounded-xl bg-[#131620] border border-[#232938] space-y-3 text-center">
-                    <p className="text-xs text-slate-300">
-                      Transfer exactly <span className="font-bold text-amber-400 font-mono">{formatNaira(totalAmount)}</span> to this dynamic dedicated account:
+                <div className="mt-4 p-4 rounded-xl bg-[#131620] border border-[#232938] space-y-3">
+                    <p className="text-xs text-slate-300 text-center">
+                      Transfer exactly <span className="font-bold text-amber-400 font-mono">{formatNaira(totalAmount)}</span> to the iBUS account below.
                     </p>
-
-                    <div className="p-4 bg-[#181d28] rounded-xl border border-[#293244] space-y-2">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-slate-400">Bank Name:</span>
-                        <span className="text-white font-bold">Wema Bank / Providus (Paystack)</span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-slate-400">Account Number:</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-amber-400 font-mono font-bold text-base">0293847192</span>
-                          <button
-                            type="button"
-                            onClick={() => copyToClipboard('0293847192')}
-                            className="p-1 hover:text-white text-slate-400 transition-colors"
-                            title="Copy Account"
-                          >
-                            {copiedAccount ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                          </button>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-slate-400">Beneficiary:</span>
-                        <span className="text-slate-200">iBUS TECH LTD - ALABA</span>
-                      </div>
-                      <div className="text-[10px] text-amber-400/90 font-mono pt-1 border-t border-[#222838]">
-                        Account expires in: 29:45 mins
-                      </div>
+                    <div className="p-4 bg-[#181d28] rounded-xl border border-[#293244] space-y-3 text-xs">
+                      <div className="flex justify-between gap-3"><span className="text-slate-400">Bank:</span><span className="text-white font-bold">Providus Bank</span></div>
+                      <div className="flex justify-between gap-3"><span className="text-slate-400">Account Number:</span><span className="text-amber-400 font-mono font-bold">1309277162</span></div>
+                      <div className="flex justify-between gap-3"><span className="text-slate-400">Account Name:</span><span className="text-white font-bold text-right">Ibus Technology Limited</span></div>
+                      <button type="button" onClick={() => copyToClipboard('1309277162')} className="text-amber-400 text-[11px] font-semibold flex items-center gap-1">
+                        {copiedAccount ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />} Copy account number
+                      </button>
                     </div>
-
-                    <button
-                      type="button"
-                      disabled={isProcessingPayment}
-                      onClick={executePayNow}
-                      className="w-full py-3 bg-amber-400 hover:bg-amber-300 text-black font-extrabold text-xs rounded-xl shadow-lg transition-colors flex items-center justify-center gap-2"
-                    >
+                    <div>
+                      <label className="text-xs font-semibold text-slate-300 block mb-1">Upload transfer receipt *</label>
+                      <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setReceiptFile(e.target.files?.[0] || null)} className="w-full text-xs text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-amber-400 file:px-3 file:py-2 file:text-xs file:font-bold file:text-black" />
+                      <p className="text-[10px] text-slate-500 mt-1">JPG, PNG or WebP · Maximum 8 MB</p>
+                      {receiptFile && <p className="text-[11px] text-emerald-400 mt-2">Selected: {receiptFile.name}</p>}
+                    </div>
+                    <p className="text-[11px] text-amber-300/90">Your order remains pending until iBUS verifies the transfer. Uploading a receipt does not confirm payment.</p>
+                    <button type="button" disabled={isUploadingReceipt} onClick={submitBankTransferReceipt} className="w-full py-3 bg-amber-400 hover:bg-amber-300 disabled:opacity-50 text-black font-extrabold text-xs rounded-xl flex items-center justify-center gap-2">
                       <CheckCircle2 className="w-4 h-4" />
-                      <span>{isProcessingPayment ? 'Verifying Bank Inflow...' : 'I Have Transferred the Money'}</span>
+                      {isUploadingReceipt ? 'Uploading receipt & submitting…' : 'Submit Transfer Receipt'}
                     </button>
-                  </div>
-                )}
-
-                {/* Sub-view: USSD */}
-                {payGatewayTab === 'ussd' && (
-                  <div className="mt-4 p-4 rounded-xl bg-[#131620] border border-[#232938] space-y-3">
-                    <p className="text-xs text-slate-300">Dial this USSD code on your registered Nigerian SIM card:</p>
-                    <div className="p-3 bg-[#181d28] rounded-lg border border-[#293244] font-mono text-center">
-                      <p className="text-base text-amber-400 font-bold">*737*000*8492#</p>
-                      <p className="text-[10px] text-slate-400 mt-1">GTBank, Zenith, Access, First Bank, UBA supported</p>
-                    </div>
-                    <button
-                      type="button"
-                      disabled={isProcessingPayment}
-                      onClick={executePayNow}
-                      className="w-full py-3 bg-amber-400 hover:bg-amber-300 text-black font-bold text-xs rounded-xl shadow-lg transition-colors"
-                    >
-                      {isProcessingPayment ? 'Waiting for USSD session...' : 'Complete USSD Payment'}
-                    </button>
-                  </div>
-                )}
+                </div>
               </div>
             )}
 
@@ -830,13 +625,13 @@ export const CheckoutModal: React.FC = () => {
 
             <div>
               <span className="text-xs font-mono font-bold text-amber-400 uppercase tracking-wider">
-                Order Successfully Processed
+                Transfer Submitted — Awaiting Verification
               </span>
               <h2 className="text-xl sm:text-2xl font-black text-white mt-1">
                 Thank You, {completedOrder.customerName}!
               </h2>
               <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
-                Your order <span className="font-mono text-white font-bold">{completedOrder.orderNumber}</span> has been confirmed. A confirmation has been prepared for dispatch from our Alaba Plaza showroom.
+                Your order <span className="font-mono text-white font-bold">{completedOrder.orderNumber}</span> has been recorded. Your receipt is awaiting iBUS verification; your order is not yet paid or confirmed.
               </p>
             </div>
 
@@ -848,11 +643,11 @@ export const CheckoutModal: React.FC = () => {
               </div>
               <div className="flex justify-between text-slate-400">
                 <span>Payment Method:</span>
-                <span className="text-amber-400 font-bold uppercase">{completedOrder.paymentMethod.replace(/_/g, ' ')}</span>
+                <span className="text-amber-400 font-bold uppercase">{completedOrder.paymentMethod.replace(/_/g, ' ')} · PENDING</span>
               </div>
               <div className="flex justify-between text-slate-400">
                 <span>Courier / Dispatch:</span>
-                <span className="text-slate-200">{completedOrder.trackingCourier}</span>
+                <span className="text-slate-200">Payment verification pending</span>
               </div>
               <div className="flex justify-between text-slate-400">
                 <span>Destination:</span>

@@ -1,4 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { auth, db } from '../lib/firebase';
+import { approveOrRejectPayment, PaymentSubmission } from '../lib/paymentSubmissions';
 import { 
   ShieldCheck, 
   Package, 
@@ -23,6 +26,7 @@ import {
 import { useApp, formatNaira } from '../context/AppContext';
 import { Product, ProductCategory, OrderStatus } from '../types';
 import { BRAND_INFO } from '../data/products';
+import { uploadImageToCloudinary } from '../lib/cloudinary';
 
 export const AdminDashboard: React.FC = () => {
   const { 
@@ -40,7 +44,32 @@ export const AdminDashboard: React.FC = () => {
     showNotification
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'save_to_buy' | 'bnpl' | 'inquiries'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'payments' | 'save_to_buy' | 'bnpl' | 'inquiries'>('overview');
+  const [paymentSubmissions, setPaymentSubmissions] = useState<PaymentSubmission[]>([]);
+  const [reviewingPaymentId, setReviewingPaymentId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const q = query(collection(db, 'paymentSubmissions'), orderBy('createdAt', 'desc'));
+    return onSnapshot(q, (snapshot) => {
+      setPaymentSubmissions(snapshot.docs.map((item) => ({ id: item.id, ...item.data() } as PaymentSubmission)));
+    }, (error) => {
+      console.error('Unable to load transfer submissions:', error);
+    });
+  }, []);
+
+  const reviewPayment = async (payment: PaymentSubmission, decision: 'approved' | 'rejected') => {
+    if (!auth.currentUser) return;
+    const note = decision === 'rejected' ? window.prompt('Reason for rejecting this receipt (optional):') || '' : '';
+    setReviewingPaymentId(payment.id);
+    try {
+      await approveOrRejectPayment(payment, decision, auth.currentUser.uid, note);
+      showNotification(decision === 'approved' ? 'Transfer approved; linked order or savings balance updated.' : 'Transfer rejected. No balance was credited.');
+    } catch (error) {
+      showNotification(error instanceof Error ? error.message : 'Unable to review this transfer');
+    } finally {
+      setReviewingPaymentId(null);
+    }
+  };
 
   // New product modal
   const [showAddProductModal, setShowAddProductModal] = useState(false);
@@ -53,6 +82,7 @@ export const AdminDashboard: React.FC = () => {
   const [newProdStock, setNewProdStock] = useState(100);
   const [newProdBadge, setNewProdBadge] = useState('New Release');
   const [newProdImage, setNewProdImage] = useState('/assets/aistudio/IMG-20261104-WA0088_1__650f297a.jpg');
+  const [isUploadingProductImage, setIsUploadingProductImage] = useState(false);
   const [newProdDesc, setNewProdDesc] = useState('Authentic iBUS engineering with 12 months replacement warranty.');
 
   // Tracking number prompt state
@@ -179,6 +209,12 @@ export const AdminDashboard: React.FC = () => {
           }`}
         >
           Customer Orders ({orders.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('payments')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${activeTab === 'payments' ? 'bg-amber-400 text-black font-extrabold' : 'bg-[#12151e] text-slate-300 border border-[#222736]'}`}
+        >
+          Bank Transfer Receipts ({paymentSubmissions.filter((p) => p.status === 'pending').length} pending)
         </button>
         <button
           onClick={() => setActiveTab('save_to_buy')}
@@ -472,6 +508,37 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
+      {/* BANK TRANSFER REVIEW */}
+      {activeTab === 'payments' && (
+        <div className="bg-[#11141c] border border-[#222736] rounded-2xl p-6 space-y-4">
+          <div className="flex items-center justify-between border-b border-[#202533] pb-4">
+            <h3 className="text-sm font-bold text-white uppercase font-mono">Bank Transfer Receipt Verification</h3>
+            <span className="text-xs text-amber-400">{paymentSubmissions.filter((p) => p.status === 'pending').length} awaiting review</span>
+          </div>
+          {paymentSubmissions.length === 0 && <p className="text-sm text-slate-400">No bank transfer receipts have been submitted.</p>}
+          {paymentSubmissions.map((payment) => (
+            <div key={payment.id} className="rounded-xl border border-[#293244] bg-[#141722] p-4 space-y-3">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <p className="text-sm font-bold text-white">{payment.customerName || 'Customer'} · {formatNaira(payment.amount)}</p>
+                  <p className="text-[11px] text-slate-400">{payment.customerEmail} · {payment.customerPhone}</p>
+                  <p className="text-[11px] text-slate-500 font-mono">{payment.orderNumber || payment.planNumber || payment.id}</p>
+                </div>
+                <span className={`rounded px-2 py-1 text-[10px] font-bold uppercase ${payment.status === 'pending' ? 'bg-amber-400/15 text-amber-300' : payment.status === 'approved' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'}`}>{payment.status}</span>
+              </div>
+              <a href={payment.receiptUrl} target="_blank" rel="noopener noreferrer" className="inline-flex text-xs text-amber-400 underline">Open uploaded transfer receipt</a>
+              {payment.status === 'pending' && (
+                <div className="flex gap-2">
+                  <button disabled={reviewingPaymentId === payment.id} onClick={() => reviewPayment(payment, 'approved')} className="rounded-lg bg-emerald-500 px-3 py-2 text-xs font-bold text-black disabled:opacity-50">Approve transfer</button>
+                  <button disabled={reviewingPaymentId === payment.id} onClick={() => reviewPayment(payment, 'rejected')} className="rounded-lg bg-red-500/15 px-3 py-2 text-xs font-bold text-red-300 disabled:opacity-50">Reject receipt</button>
+                </div>
+              )}
+              {payment.reviewNote && <p className="text-xs text-slate-400">Admin note: {payment.reviewNote}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* TAB 5: BNPL ACCOUNTS */}
       {activeTab === 'bnpl' && (
         <div className="bg-[#11141c] border border-[#222736] rounded-2xl p-6 space-y-4">
@@ -644,22 +711,31 @@ export const AdminDashboard: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-slate-300 font-semibold block mb-1">Select Product Image Asset</label>
-                <select
-                  value={newProdImage}
-                  onChange={(e) => setNewProdImage(e.target.value)}
+                <label className="text-slate-300 font-semibold block mb-1">Upload Product Image to Cloudinary</label>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  disabled={isUploadingProductImage}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setIsUploadingProductImage(true);
+                    try {
+                      const uploaded = await uploadImageToCloudinary(file, 'ibus/products');
+                      setNewProdImage(uploaded.secureUrl);
+                      showNotification('Product image uploaded successfully');
+                    } catch (error) {
+                      showNotification(error instanceof Error ? error.message : 'Image upload failed');
+                    } finally {
+                      setIsUploadingProductImage(false);
+                      e.target.value = '';
+                    }
+                  }}
                   className="w-full bg-[#171b26] border border-[#2b3345] rounded-lg px-3 py-2 text-white outline-none"
-                >
-                  <option value="/assets/aistudio/IMG-20261104-WA0088_1__650f297a.jpg">iBUS buds 3.0 ANC (Box + Case)</option>
-                  <option value="/assets/aistudio/IMG-20261104-WA0080_1__de103086.jpg">30,000mAh Power Bank (Retail Box)</option>
-                  <option value="/assets/aistudio/IMG-20261104-WA0086_1__9650e2a4.jpg">20,000mAh Power Bank</option>
-                  <option value="/assets/aistudio/IMG-20261104-WA0084_1__6f834baa.jpg">iS3 Mini 10,000mAh LED Power Bank</option>
-                  <option value="/assets/aistudio/IMG-20261104-WA0081_1__f344b7d1.jpg">iS2 Dual USB Car Charger 3.4A</option>
-                  <option value="/assets/aistudio/IMG-20261104-WA0087_1__7aae242a.jpg">C-Cable Type C 2-Pack</option>
-                  <option value="/assets/aistudio/IMG-20261104-WA0083_1__75b06355.jpg">L-Cable iPhone Lightning 2-Pack</option>
-                  <option value="/assets/aistudio/IMG-20261104-WA0085_1__48c2d545.jpg">M-Cable Android Micro USB 2-Pack</option>
-                  <option value="/assets/aistudio/IMG-20261104-WA0090_1__aeed71e6.jpg">iS1 True Wireless Earbuds</option>
-                </select>
+                />
+                <p className="text-[10px] text-slate-500 mt-1">JPG, PNG or WebP · Max 10 MB</p>
+                {isUploadingProductImage && <p className="text-xs text-amber-400 mt-2">Uploading image…</p>}
+                {newProdImage && <img src={newProdImage} alt="Product preview" className="mt-3 h-24 w-24 rounded-lg object-contain bg-black p-2" />}
               </div>
 
               <div>

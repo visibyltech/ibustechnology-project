@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import { useApp, formatNaira } from '../context/AppContext';
 import { BRAND_INFO } from '../data/products';
+import { uploadImageToCloudinary } from '../lib/cloudinary';
+import { submitSaveToBuyBankTransfer, submitSaveToBuyTopUp } from '../lib/paymentSubmissions';
 
 export const SaveToBuyView: React.FC = () => {
   const { 
@@ -27,13 +29,16 @@ export const SaveToBuyView: React.FC = () => {
     createSaveToBuyPlan, 
     addSaveToBuyDeposit,
     openCheckoutWithMode,
-    setCurrentView
+    setCurrentView,
+    user,
+    showNotification
   } = useApp();
 
   const [selectedPlanForDeposit, setSelectedPlanForDeposit] = useState<string | null>(null);
   const [depositAmount, setDepositAmount] = useState<number>(5000);
   const [depositChannel, setDepositChannel] = useState<'Card' | 'Bank Transfer' | 'USSD'>('Card');
   const [receiptFileName, setReceiptFileName] = useState<string>('');
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [isDepositing, setIsDepositing] = useState(false);
 
   // New plan modal states
@@ -44,48 +49,53 @@ export const SaveToBuyView: React.FC = () => {
 
   const selectedProduct = products.find((p) => p.id === newPlanProductId) || products[0];
 
-  const handleDepositSubmit = (e: React.FormEvent) => {
+  const handleDepositSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedPlanForDeposit || depositAmount <= 0) return;
-
+    const plan = saveToBuyPlans.find((item) => item.id === selectedPlanForDeposit);
+    if (!user?.id || !plan) return window.alert('Please sign in and select an active Save to Buy plan.');
+    if (depositChannel !== 'Bank Transfer') return window.alert('Card and USSD deposits are not connected yet. Please select Bank Transfer.');
+    if (!receiptFile) return window.alert('Please upload your bank transfer receipt.');
     setIsDepositing(true);
-    setTimeout(() => {
-      addSaveToBuyDeposit(
-        selectedPlanForDeposit, 
-        depositAmount, 
-        depositChannel, 
-        receiptFileName ? `https://storage.ibus.ng/receipts/${receiptFileName}` : undefined
-      );
-      setIsDepositing(false);
-      setSelectedPlanForDeposit(null);
-      setReceiptFileName('');
-
-      confetti({
-        particleCount: 70,
-        spread: 60,
-        origin: { y: 0.7 }
-      });
-    }, 1000);
+    try {
+      const uploaded = await uploadImageToCloudinary(receiptFile, 'ibus/payment-receipts');
+      await submitSaveToBuyTopUp(user.id, plan.id, plan.planNumber, depositAmount,
+        { secureUrl: uploaded.secureUrl, publicId: uploaded.publicId },
+        { name: user.name, email: user.email, phone: user.phone });
+      showNotification('Receipt submitted. Your savings balance will update after admin verification.');
+      setSelectedPlanForDeposit(null); setReceiptFile(null); setReceiptFileName('');
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'Unable to submit this receipt.');
+    } finally { setIsDepositing(false); }
   };
 
-  const handleCreateNewPlan = (e: React.FormEvent) => {
+  const handleCreateNewPlan = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedProduct) return;
-
-    createSaveToBuyPlan(
-      selectedProduct.id, 
-      selectedProduct.price, 
-      newPlanInitialDeposit, 
-      newPlanFrequency, 
-      'Card'
-    );
-    setIsStartingNewPlan(false);
-
-    confetti({
-      particleCount: 80,
-      spread: 70,
-      origin: { y: 0.6 }
-    });
+    if (!user?.id) return window.alert('Please sign in before starting a Save to Buy plan.');
+    if (!selectedProduct || newPlanInitialDeposit < 5000 || newPlanInitialDeposit > selectedProduct.price) {
+      return window.alert('Please enter a valid initial deposit for the selected product.');
+    }
+    const receiptInput = document.getElementById('stb-initial-receipt') as HTMLInputElement | null;
+    const file = receiptInput?.files?.[0];
+    if (!file) return window.alert('Please upload the bank transfer receipt for your initial deposit.');
+    setIsStartingNewPlan(true);
+    try {
+      const uploaded = await uploadImageToCloudinary(file, 'ibus/payment-receipts');
+      const today = new Date(); const target = new Date(); target.setDate(target.getDate() + 45);
+      const planNumber = `STB-${Math.floor(10000 + Math.random() * 90000)}`;
+      await submitSaveToBuyBankTransfer(user.id, {
+        planNumber, productId: selectedProduct.id, productName: selectedProduct.name,
+        productImage: selectedProduct.images[0] || '', targetAmount: selectedProduct.price,
+        frequency: newPlanFrequency, startDate: today.toISOString().slice(0, 10),
+        targetDate: target.toISOString().slice(0, 10),
+        suggestedInstallment: Math.round((selectedProduct.price - newPlanInitialDeposit) / 4),
+        status: 'active'
+      }, newPlanInitialDeposit, { secureUrl: uploaded.secureUrl, publicId: uploaded.publicId },
+      { name: user.name, email: user.email, phone: user.phone });
+      showNotification('Plan created. Initial deposit is pending receipt verification.');
+      setIsStartingNewPlan(false);
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'Unable to create your Save to Buy plan.');
+    } finally { setIsStartingNewPlan(false); }
   };
 
   return (
@@ -379,11 +389,11 @@ export const SaveToBuyView: React.FC = () => {
 
               {depositChannel === 'Bank Transfer' && (
                 <div className="p-3 bg-[#171b26] rounded-xl border border-[#2b3345] space-y-2 text-xs">
-                  <p className="text-slate-300 font-medium">Transfer to dedicated savings account:</p>
+                  <p className="text-slate-300 font-medium">Transfer to iBUS Technology Limited:</p>
                   <div className="font-mono bg-[#0e1017] p-2 rounded text-slate-200">
-                    <p className="text-amber-400 font-bold">Wema Bank (Paystack)</p>
-                    <p className="text-white text-sm font-bold">0293847192</p>
-                    <p className="text-[10px] text-slate-400">iBUS TECH LTD - SAVINGS</p>
+                    <p className="text-amber-400 font-bold">Providus Bank</p>
+                    <p className="text-white text-sm font-bold">1309277162</p>
+                    <p className="text-[10px] text-slate-400">Ibus Technology Limited</p>
                   </div>
                   <div>
                     <label className="text-[11px] text-slate-400 block mb-1">
@@ -392,7 +402,7 @@ export const SaveToBuyView: React.FC = () => {
                     <input 
                       type="file" 
                       accept="image/*"
-                      onChange={(e) => setReceiptFileName(e.target.files?.[0]?.name || '')}
+                      onChange={(e) => { const file = e.target.files?.[0] || null; setReceiptFile(file); setReceiptFileName(file?.name || ''); }}
                       className="text-xs text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-emerald-500 file:text-black file:text-xs file:font-bold cursor-pointer"
                     />
                     {receiptFileName && (
@@ -490,6 +500,12 @@ export const SaveToBuyView: React.FC = () => {
                 </div>
               </div>
 
+              <div className="space-y-2 rounded-xl border border-[#2b3345] bg-[#171b26] p-3">
+                <p className="text-slate-300 font-semibold">Initial Bank Transfer Receipt *</p>
+                <p className="text-[11px] text-slate-400">Providus Bank · 1309277162 · Ibus Technology Limited</p>
+                <input id="stb-initial-receipt" type="file" accept="image/jpeg,image/png,image/webp" required className="w-full text-xs text-slate-300" />
+                <p className="text-[10px] text-slate-500">Your verified savings balance remains ₦0 until the receipt is approved.</p>
+              </div>
               <button
                 type="submit"
                 className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs rounded-xl shadow-lg transition-colors"
