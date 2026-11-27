@@ -25,19 +25,27 @@ export const CustomerDashboard: React.FC = () => {
     user, 
     orders, 
     saveToBuyPlans, 
-    bnplPlans, 
-    payBnplInstallment, 
     wishlist, 
     products, 
     addToCart, 
     toggleWishlist,
-    setCurrentView,
-    loginAsDemoUser
+    setCurrentView
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'orders' | 'save_to_buy' | 'bnpl' | 'wishlist' | 'profile'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'save_to_buy' | 'wishlist' | 'profile'>('orders');
 
   const wishlistProducts = products.filter((p) => wishlist.includes(p.id));
+
+  if (!user) {
+    return (
+      <section className="mx-auto my-16 max-w-xl rounded-2xl border border-[#343b48] bg-[#1a1f28] p-8 text-center">
+        <User className="mx-auto h-10 w-10 text-amber-400" />
+        <h1 className="mt-4 text-xl font-bold text-white">Sign in to your iBUS account</h1>
+        <p className="mt-2 text-sm text-slate-300">Your orders, saved products and payment records are private. Sign in or create an account to view your customer portal.</p>
+        <button onClick={() => window.dispatchEvent(new Event('ibus:open-auth'))} className="mt-5 rounded-lg bg-amber-400 px-5 py-3 text-xs font-bold text-black">Sign In / Create Account</button>
+      </section>
+    );
+  }
 
   return (
     <div className="py-10 px-4 sm:px-6 max-w-7xl mx-auto space-y-8">
@@ -71,24 +79,14 @@ export const CustomerDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Quick Demo Switcher if needed */}
-        <div className="flex items-center gap-2 self-start md:self-auto">
-          {!user ? (
-            <button
-              onClick={() => loginAsDemoUser(false)}
-              className="px-4 py-2 bg-amber-400 text-black text-xs font-bold rounded-xl"
-            >
-              Sign In Demo Account
-            </button>
-          ) : (
-            <button
-              onClick={() => loginAsDemoUser(!user.isWholesaleCustomer)}
-              className="px-3.5 py-2 bg-[#191e2b] hover:bg-[#232a3d] text-slate-300 text-xs font-semibold rounded-xl border border-[#2a3449] transition-colors"
-            >
-              Switch to {user.isWholesaleCustomer ? 'Retail Profile' : 'Distributor Profile'}
-            </button>
-          )}
-        </div>
+        {!user && (
+          <button
+            onClick={() => window.dispatchEvent(new Event('ibus:open-auth'))}
+            className="px-4 py-2 bg-amber-400 text-black text-xs font-bold rounded-xl"
+          >
+            Sign In / Create Account
+          </button>
+        )}
       </div>
 
       {/* Segmented Navigation Tabs */}
@@ -115,18 +113,6 @@ export const CustomerDashboard: React.FC = () => {
         >
           <PiggyBank className="w-4 h-4" />
           <span>Save to Buy Layaway ({saveToBuyPlans.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('bnpl')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer ${
-            activeTab === 'bnpl' 
-              ? 'bg-blue-600 text-white shadow-md' 
-              : 'bg-[#12151e] text-slate-300 hover:bg-[#1a1f2c] border border-[#232938]'
-          }`}
-        >
-          <CreditCard className="w-4 h-4" />
-          <span>Buy Now Pay Later ({bnplPlans.length})</span>
         </button>
 
         <button
@@ -315,66 +301,6 @@ export const CustomerDashboard: React.FC = () => {
                 </div>
               );
             })}
-          </div>
-        </div>
-      )}
-
-      {/* 3. BNPL TAB */}
-      {activeTab === 'bnpl' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-white tracking-tight">
-              Buy Now, Pay Later Active Installments
-            </h2>
-            <span className="text-xs text-blue-400 font-mono">0% Interest Credit Line</span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {bnplPlans.map((plan) => (
-              <div key={plan.id} className="bg-[#11141c] border border-[#222736] rounded-2xl p-6 space-y-4">
-                <div className="flex items-center justify-between text-xs font-mono">
-                  <span className="text-blue-400 font-bold">{plan.applicationNumber}</span>
-                  <span className="text-slate-400">Remaining: <span className="text-white font-bold">{formatNaira(plan.amountRemaining)}</span></span>
-                </div>
-
-                <div className="flex gap-3 items-center">
-                  <img src={plan.productImage} alt={plan.productName} className="w-14 h-14 object-contain bg-black rounded p-1" />
-                  <div>
-                    <h4 className="text-sm font-bold text-white">{plan.productName}</h4>
-                    <p className="text-xs text-slate-400 font-mono">Total: {formatNaira(plan.totalAmount)}</p>
-                  </div>
-                </div>
-
-                {/* Installment breakdown */}
-                <div className="space-y-2 pt-2 border-t border-[#1f2433]">
-                  <p className="text-xs font-bold text-slate-300 font-mono uppercase">Payment Schedule:</p>
-                  {plan.installments.map((inst) => (
-                    <div 
-                      key={inst.installmentNumber}
-                      className="flex items-center justify-between p-2 rounded-lg bg-[#0d0f15] border border-[#1b202a] text-xs font-mono"
-                    >
-                      <div>
-                        <span className="text-white font-bold">Installment #{inst.installmentNumber}</span>
-                        <span className="text-slate-500 ml-2">Due: {inst.dueDate}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-white font-bold">{formatNaira(inst.amount)}</span>
-                        {inst.paid ? (
-                          <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-bold">Paid</span>
-                        ) : (
-                          <button
-                            onClick={() => payBnplInstallment(plan.id, inst.installmentNumber)}
-                            className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold rounded"
-                          >
-                            Pay Now
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       )}

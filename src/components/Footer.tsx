@@ -49,7 +49,7 @@ export const Footer: React.FC = () => {
               </div>
               <div>
                 <h4 className="text-white font-bold text-xs">Flexible Purchase Options</h4>
-                <p className="text-[11px] text-slate-500 mt-0.5">Pay Now, Buy Now Pay Later, or Save to Buy layaway plans</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">Pay Now by Bank Transfer or Save to Buy layaway plans</p>
               </div>
             </div>
           </div>
@@ -244,24 +244,10 @@ export const Footer: React.FC = () => {
               Accepted Payments
             </h4>
             <p className="text-[11px] text-slate-500">
-              Secured Nigerian payment processing powered by Paystack & Flutterwave.
+              Bank transfer is currently available. Orders and savings deposits remain pending until iBUS verifies the uploaded receipt.
             </p>
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              <span className="px-2 py-1 rounded bg-[#131620] border border-[#242b3b] text-[10px] font-mono text-slate-300 font-bold">
-                PAYSTACK
-              </span>
-              <span className="px-2 py-1 rounded bg-[#131620] border border-[#242b3b] text-[10px] font-mono text-slate-300 font-bold">
-                VERVE
-              </span>
-              <span className="px-2 py-1 rounded bg-[#131620] border border-[#242b3b] text-[10px] font-mono text-slate-300 font-bold">
-                MASTERCARD
-              </span>
-              <span className="px-2 py-1 rounded bg-[#131620] border border-[#242b3b] text-[10px] font-mono text-slate-300 font-bold">
-                VISA
-              </span>
-              <span className="px-2 py-1 rounded bg-[#131620] border border-[#242b3b] text-[10px] font-mono text-slate-300 font-bold">
-                BANK TRANSFER
-              </span>
+            <div className="pt-1 text-[11px] font-semibold text-amber-300">
+              Providus Bank · Manual receipt verification
             </div>
 
             <div className="pt-2 text-[11px] text-slate-500 font-mono flex items-center gap-1">

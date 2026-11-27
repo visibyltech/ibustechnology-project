@@ -10,7 +10,6 @@ import {
   Truck, 
   Boxes,
   Zap,
-  CreditCard,
   PiggyBank
 } from 'lucide-react';
 import { useApp, formatNaira } from '../context/AppContext';
@@ -202,19 +201,11 @@ export const CartDrawer: React.FC = () => {
                 className="w-full py-3 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-400 hover:from-amber-300 hover:to-amber-400 text-black font-extrabold text-xs rounded-xl shadow-lg shadow-amber-400/20 flex items-center justify-center gap-2 transition-all"
               >
                 <Zap className="w-4 h-4 text-black" />
-                <span>Pay Now (Paystack / Transfer / USSD)</span>
+                <span>Pay Now (Bank Transfer)</span>
                 <ArrowRight className="w-3.5 h-3.5 ml-1" />
               </button>
 
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => openCheckoutWithMode('bnpl')}
-                  className="py-2.5 px-2 bg-[#1a202c] hover:bg-[#252c3c] text-white border border-[#2e374a] text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-colors"
-                >
-                  <CreditCard className="w-3.5 h-3.5 text-blue-400" />
-                  <span>Buy Now Pay Later</span>
-                </button>
-
+              <div className="grid grid-cols-1 gap-2">
                 <button
                   onClick={() => openCheckoutWithMode('save_to_buy')}
                   className="py-2.5 px-2 bg-[#1a202c] hover:bg-[#252c3c] text-white border border-[#2e374a] text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-colors"

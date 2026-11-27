@@ -111,39 +111,7 @@ const MainContent: React.FC = () => {
               </div>
             </section>
 
-            <section className="py-12 px-4 sm:px-6 max-w-7xl mx-auto border-t border-[#343b48]">
-              <div className="text-center max-w-xl mx-auto mb-10 space-y-2">
-                <span className="text-xs font-mono font-bold text-amber-400 uppercase tracking-wider">
-                  Real Feedback from Nigeria
-                </span>
-                <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                  Trusted by Retailers & Gadget Lovers
-                </h2>
-                <p className="text-xs text-slate-300">
-                  From Computer Village to Onitsha and Port Harcourt, discover why thousands trust authentic iBUS accessories.
-                </p>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {TESTIMONIALS.map((t) => (
-                  <div key={t.id} className="bg-[#1a1f28] border border-[#343b48] rounded-2xl p-6 space-y-4 flex flex-col justify-between">
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-1 text-amber-400">
-                        {Array.from({ length: t.rating }).map((_, i) => (
-                          <Star key={i} className="w-4 h-4 fill-amber-400" />
-                        ))}
-                      </div>
-                      <p className="text-xs text-slate-200 leading-relaxed italic">"{t.comment}"</p>
-                    </div>
-                    <div className="pt-3 border-t border-[#303744]">
-                      <h4 className="text-xs font-bold text-white">{t.name}</h4>
-                      <p className="text-[11px] text-slate-300">{t.role}</p>
-                      <span className="text-[10px] text-amber-300 font-mono mt-0.5 block">{t.city}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
           </>
         )}
 
