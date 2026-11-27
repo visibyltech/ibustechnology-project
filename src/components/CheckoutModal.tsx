@@ -20,6 +20,8 @@ import {
 import { useApp, formatNaira } from '../context/AppContext';
 import { PaymentMethod, Order } from '../types';
 import { BRAND_INFO } from '../data/products';
+import { uploadImageToCloudinary } from '../lib/cloudinary';
+import { submitOrderBankTransfer } from '../lib/paymentSubmissions';
 
 const NIGERIAN_STATES = [
   { name: 'Lagos', fee: 2500, region: 'lagos' },
@@ -50,6 +52,7 @@ export const CheckoutModal: React.FC = () => {
     createOrder,
     createSaveToBuyPlan,
     createBnplPlan,
+    clearCart,
     user,
     setCurrentView
   } = useApp();
@@ -79,6 +82,8 @@ export const CheckoutModal: React.FC = () => {
 
   // Bank Transfer virtual account states
   const [copiedAccount, setCopiedAccount] = useState(false);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [isUploadingReceipt, setIsUploadingReceipt] = useState(false);
 
   // BNPL Specific states
   const [bvnLast4, setBvnLast4] = useState('8921');
@@ -119,7 +124,67 @@ export const CheckoutModal: React.FC = () => {
 
   const executePayNow = () => {
     setIsProcessingPayment(false);
-    window.alert('Online payments are not enabled yet. No payment has been taken and no order has been confirmed. Please contact iBUS to arrange payment.');
+    window.alert('Online card payments are not enabled yet. No payment has been taken.');
+  };
+
+  const submitBankTransferReceipt = async () => {
+    if (!user?.id) {
+      window.alert('Please sign in or create an account before submitting a bank transfer receipt.');
+      return;
+    }
+    if (!receiptFile) {
+      window.alert('Please choose a screenshot or photo of your bank transfer receipt.');
+      return;
+    }
+    if (!cart.length) {
+      window.alert('Your cart is empty. Please add products before checkout.');
+      return;
+    }
+
+    setIsUploadingReceipt(true);
+    try {
+      const uploaded = await uploadImageToCloudinary(receiptFile, 'ibus/payment-receipts');
+      const orderData = {
+        customerName,
+        customerEmail,
+        customerPhone,
+        deliveryAddress: { street, city, state: selectedState, landmark },
+        items: cart.map((item) => ({
+          productId: item.product.id,
+          productName: item.product.name,
+          image: item.product.images[0] || '',
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          isWholesale: item.isWholesale
+        })),
+        subtotal: cartSubtotal,
+        shippingFee,
+        discount: 0,
+        total: totalAmount,
+        paymentMethod: 'bank_transfer' as const,
+        paymentStatus: 'pending' as const,
+        orderStatus: 'pending_payment' as const,
+        notes: deliveryNotes
+      };
+      const result = await submitOrderBankTransfer(user.id, orderData, {
+        secureUrl: uploaded.secureUrl,
+        publicId: uploaded.publicId
+      });
+      const localOrder: Order = {
+        ...orderData,
+        id: result.orderId,
+        orderNumber: result.orderNumber,
+        date: new Date().toISOString().replace('T', ' ').slice(0, 16),
+        trackingCourier: 'Pending payment verification'
+      };
+      setCompletedOrder(localOrder);
+      clearCart();
+      setStep('confirmed');
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'Unable to submit your receipt. Please try again.');
+    } finally {
+      setIsUploadingReceipt(false);
+    }
   };
 
   const executeBnpl = () => {
@@ -503,47 +568,28 @@ export const CheckoutModal: React.FC = () => {
 
                 {/* Sub-view: Bank Transfer */}
                 {payGatewayTab === 'transfer' && (
-                  <div className="mt-4 p-4 rounded-xl bg-[#131620] border border-[#232938] space-y-3 text-center">
-                    <p className="text-xs text-slate-300">
-                      Transfer exactly <span className="font-bold text-amber-400 font-mono">{formatNaira(totalAmount)}</span> to this dynamic dedicated account:
+                  <div className="mt-4 p-4 rounded-xl bg-[#131620] border border-[#232938] space-y-3">
+                    <p className="text-xs text-slate-300 text-center">
+                      Transfer exactly <span className="font-bold text-amber-400 font-mono">{formatNaira(totalAmount)}</span> to the iBUS account below.
                     </p>
-
-                    <div className="p-4 bg-[#181d28] rounded-xl border border-[#293244] space-y-2">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-slate-400">Bank Name:</span>
-                        <span className="text-white font-bold">Payment account not configured</span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-slate-400">Account Number:</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-amber-400 font-mono font-bold text-base">Not available</span>
-                          <button
-                            type="button"
-                            onClick={() => copyToClipboard('0293847192')}
-                            className="p-1 hover:text-white text-slate-400 transition-colors"
-                            title="Copy Account"
-                          >
-                            {copiedAccount ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                          </button>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-slate-400">Beneficiary:</span>
-                        <span className="text-slate-200">Payment details will be displayed here after provider setup</span>
-                      </div>
-                      <div className="text-[10px] text-amber-400/90 font-mono pt-1 border-t border-[#222838]">
-                        No transfer account has been issued
-                      </div>
+                    <div className="p-4 bg-[#181d28] rounded-xl border border-[#293244] space-y-3 text-xs">
+                      <div className="flex justify-between gap-3"><span className="text-slate-400">Bank:</span><span className="text-white font-bold">Providus Bank</span></div>
+                      <div className="flex justify-between gap-3"><span className="text-slate-400">Account Number:</span><span className="text-amber-400 font-mono font-bold">1309277162</span></div>
+                      <div className="flex justify-between gap-3"><span className="text-slate-400">Account Name:</span><span className="text-white font-bold text-right">Ibus Technology Limited</span></div>
+                      <button type="button" onClick={() => copyToClipboard('1309277162')} className="text-amber-400 text-[11px] font-semibold flex items-center gap-1">
+                        {copiedAccount ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />} Copy account number
+                      </button>
                     </div>
-
-                    <button
-                      type="button"
-                      disabled={isProcessingPayment}
-                      onClick={executePayNow}
-                      className="w-full py-3 bg-amber-400 hover:bg-amber-300 text-black font-extrabold text-xs rounded-xl shadow-lg transition-colors flex items-center justify-center gap-2"
-                    >
+                    <div>
+                      <label className="text-xs font-semibold text-slate-300 block mb-1">Upload transfer receipt *</label>
+                      <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setReceiptFile(e.target.files?.[0] || null)} className="w-full text-xs text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-amber-400 file:px-3 file:py-2 file:text-xs file:font-bold file:text-black" />
+                      <p className="text-[10px] text-slate-500 mt-1">JPG, PNG or WebP · Maximum 8 MB</p>
+                      {receiptFile && <p className="text-[11px] text-emerald-400 mt-2">Selected: {receiptFile.name}</p>}
+                    </div>
+                    <p className="text-[11px] text-amber-300/90">Your order remains pending until iBUS verifies the transfer. Uploading a receipt does not confirm payment.</p>
+                    <button type="button" disabled={isUploadingReceipt} onClick={submitBankTransferReceipt} className="w-full py-3 bg-amber-400 hover:bg-amber-300 disabled:opacity-50 text-black font-extrabold text-xs rounded-xl flex items-center justify-center gap-2">
                       <CheckCircle2 className="w-4 h-4" />
-                      <span>{isProcessingPayment ? 'Verifying Bank Inflow...' : 'I Have Transferred the Money'}</span>
+                      {isUploadingReceipt ? 'Uploading receipt & submitting…' : 'Submit Transfer Receipt'}
                     </button>
                   </div>
                 )}
@@ -716,13 +762,13 @@ export const CheckoutModal: React.FC = () => {
 
             <div>
               <span className="text-xs font-mono font-bold text-amber-400 uppercase tracking-wider">
-                Order Successfully Processed
+                Transfer Submitted — Awaiting Verification
               </span>
               <h2 className="text-xl sm:text-2xl font-black text-white mt-1">
                 Thank You, {completedOrder.customerName}!
               </h2>
               <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
-                Your order <span className="font-mono text-white font-bold">{completedOrder.orderNumber}</span> has been confirmed. A confirmation has been prepared for dispatch from our Alaba Plaza showroom.
+                Your order <span className="font-mono text-white font-bold">{completedOrder.orderNumber}</span> has been recorded. Your receipt is awaiting iBUS verification; your order is not yet paid or confirmed.
               </p>
             </div>
 
@@ -734,11 +780,11 @@ export const CheckoutModal: React.FC = () => {
               </div>
               <div className="flex justify-between text-slate-400">
                 <span>Payment Method:</span>
-                <span className="text-amber-400 font-bold uppercase">{completedOrder.paymentMethod.replace(/_/g, ' ')}</span>
+                <span className="text-amber-400 font-bold uppercase">{completedOrder.paymentMethod.replace(/_/g, ' ')} · PENDING</span>
               </div>
               <div className="flex justify-between text-slate-400">
                 <span>Courier / Dispatch:</span>
-                <span className="text-slate-200">{completedOrder.trackingCourier}</span>
+                <span className="text-slate-200">Payment verification pending</span>
               </div>
               <div className="flex justify-between text-slate-400">
                 <span>Destination:</span>
