@@ -2,7 +2,6 @@ import {
   addDoc,
   collection,
   doc,
-  getDoc,
   runTransaction,
   serverTimestamp,
   Timestamp
@@ -135,21 +134,6 @@ export async function approveOrRejectPayment(
       reviewNote
     });
   });
-}
-
-export async function createSaveToBuyPlanRecord(
-  customerUid: string,
-  plan: Record<string, unknown>
-) {
-  const ref = await addDoc(collection(db, 'saveToBuyPlans'), {
-    ...plan,
-    customerUid,
-    totalSaved: 0,
-    depositCount: 0,
-    deposits: [],
-    createdAt: serverTimestamp()
-  });
-  return ref.id;
 }
 
 export async function submitSaveToBuyBankTransfer(
