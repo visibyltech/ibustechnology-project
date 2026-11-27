@@ -25,8 +25,6 @@ export const CustomerDashboard: React.FC = () => {
     user, 
     orders, 
     saveToBuyPlans, 
-    bnplPlans, 
-    payBnplInstallment, 
     wishlist, 
     products, 
     addToCart, 
@@ -115,18 +113,6 @@ export const CustomerDashboard: React.FC = () => {
         >
           <PiggyBank className="w-4 h-4" />
           <span>Save to Buy Layaway ({saveToBuyPlans.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('bnpl')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer ${
-            activeTab === 'bnpl' 
-              ? 'bg-blue-600 text-white shadow-md' 
-              : 'bg-[#12151e] text-slate-300 hover:bg-[#1a1f2c] border border-[#232938]'
-          }`}
-        >
-          <CreditCard className="w-4 h-4" />
-          <span>Buy Now Pay Later ({bnplPlans.length})</span>
         </button>
 
         <button
@@ -315,25 +301,6 @@ export const CustomerDashboard: React.FC = () => {
                 </div>
               );
             })}
-          </div>
-        </div>
-      )}
-
-      {/* 3. BNPL TAB */}
-      {activeTab === 'bnpl' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-white tracking-tight">
-              Buy Now, Pay Later Active Installments
-            </h2>
-            <span className="text-xs text-slate-400 font-mono">Not currently available</span>
-          </div>
-
-          <div className="bg-[#11141c] border border-[#222736] rounded-2xl p-8 text-center">
-            <CreditCard className="w-10 h-10 text-slate-500 mx-auto mb-3" />
-            <h3 className="text-sm font-bold text-white">No BNPL transactions</h3>
-            <p className="text-xs text-slate-400 mt-2">There are no approved Buy Now Pay Later applications linked to this account. BNPL applications are currently unavailable.</p>
-          </div>
           </div>
         </div>
       )}
