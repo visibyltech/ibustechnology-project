@@ -131,8 +131,8 @@ const MainContent: React.FC = () => {
         ) : isAdminAuthenticated ? <AdminDashboard /> : (
           <section className="mx-auto my-16 max-w-xl rounded-2xl border border-[#414b5b] bg-[#1a1f28] p-8 text-center">
             <ShieldCheck className="mx-auto h-10 w-10 text-amber-400" />
-            <h2 className="mt-4 text-xl font-bold text-white">{isAdminEmailRecognized ? 'Verify your administrator email' : 'Administrator access required'}</h2>
-            <p className="mt-2 text-sm text-slate-300">{isAdminEmailRecognized ? 'This administrator account must have a verified email address. Open the Firebase verification email, verify the address, then sign out and sign in again.' : 'This area is restricted. Sign in with the authorized iBUS administrator account.'}</p>
+            <h2 className="mt-4 text-xl font-bold text-white">{isAdminEmailRecognized ? 'Administrator access is being prepared' : 'Administrator access required'}</h2>
+            <p className="mt-2 text-sm text-slate-300">{isAdminEmailRecognized ? 'Your administrator account is recognized. Please wait for the secure session to finish loading.' : 'This area is restricted. Sign in with the authorized iBUS administrator account.'}</p>
             <button onClick={() => setCurrentView('home')} className="mt-5 rounded-lg bg-amber-400 px-5 py-2.5 text-xs font-bold text-black">Return to store</button>
           </section>
         ))}
