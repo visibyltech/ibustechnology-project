@@ -77,7 +77,6 @@ interface AppContextType {
   setUser: (user: UserProfile | null) => void;
   isAdminAuthenticated: boolean;
   setIsAdminAuthenticated: (val: boolean) => void;
-  loginAsDemoUser: (asWholesale?: boolean) => void;
   logout: () => void;
 
   // Orders, BNPL & Save to Buy Data
@@ -398,23 +397,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Orders, BNPL, STB, Inquiries
   const [orders, setOrders] = useState<Order[]>(() => {
-    const saved = localStorage.getItem('ibus_orders');
-    return saved ? JSON.parse(saved) : [];
+    return [];
   });
 
   const [saveToBuyPlans, setSaveToBuyPlans] = useState<SaveToBuyPlan[]>(() => {
-    const saved = localStorage.getItem('ibus_stb');
-    return saved ? JSON.parse(saved) : [];
+    return [];
   });
 
   const [bnplPlans, setBnplPlans] = useState<BNPLPlan[]>(() => {
-    const saved = localStorage.getItem('ibus_bnpl');
-    return saved ? JSON.parse(saved) : [];
+    return [];
   });
 
   const [wholesaleInquiries, setWholesaleInquiries] = useState<WholesaleInquiry[]>(() => {
-    const saved = localStorage.getItem('ibus_inquiries');
-    return saved ? JSON.parse(saved) : [];
+    return [];
   });
 
   // Public product catalogue is shared through Firestore. On a fresh database,
@@ -495,21 +490,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem('ibus_wishlist', JSON.stringify(wishlist));
   }, [wishlist]);
 
+  // Customer transactions are loaded from Firestore only. Clear old browser-cached
+  // demo records so they can never appear as genuine orders, savings or credit.
   useEffect(() => {
-    localStorage.setItem('ibus_orders', JSON.stringify(orders));
-  }, [orders]);
-
-  useEffect(() => {
-    localStorage.setItem('ibus_stb', JSON.stringify(saveToBuyPlans));
-  }, [saveToBuyPlans]);
-
-  useEffect(() => {
-    localStorage.setItem('ibus_bnpl', JSON.stringify(bnplPlans));
-  }, [bnplPlans]);
-
-  useEffect(() => {
-    localStorage.setItem('ibus_inquiries', JSON.stringify(wholesaleInquiries));
-  }, [wholesaleInquiries]);
+    localStorage.removeItem('ibus_orders');
+    localStorage.removeItem('ibus_stb');
+    localStorage.removeItem('ibus_bnpl');
+    localStorage.removeItem('ibus_inquiries');
+  }, []);
 
   const showNotification = (msg: string) => {
     setNotification(msg);
@@ -651,6 +639,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Open Checkout in different modes
   const openCheckoutWithMode = (mode: 'pay_now' | 'bnpl' | 'save_to_buy', directProduct?: Product) => {
+    if (!user) {
+      window.dispatchEvent(new Event('ibus:open-auth'));
+      return;
+    }
+    if (mode === 'bnpl') {
+      showNotification('Buy Now Pay Later is not currently available. Please use Pay Now or Save to Buy.');
+      return;
+    }
     if (directProduct) {
       if (mode === 'save_to_buy') {
         setSaveToBuySelectedProduct(directProduct);
@@ -884,10 +880,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // User Actions
-  const loginAsDemoUser = (_asWholesale = false) => {
-    showNotification('Customer sign-in is being connected to Firebase. Demo sign-in has been disabled.');
-  };
-
   const logout = async () => {
     try {
       await signOut(auth);
@@ -946,7 +938,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setUser,
         isAdminAuthenticated,
         setIsAdminAuthenticated,
-        loginAsDemoUser,
         logout,
         orders,
         createOrder,
