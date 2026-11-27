@@ -178,3 +178,28 @@ export async function submitSaveToBuyBankTransfer(
   });
   return { planId: planRef.id, paymentId: paymentRef.id };
 }
+
+export async function submitSaveToBuyTopUp(
+  customerUid: string,
+  planId: string,
+  planNumber: string,
+  amount: number,
+  receipt: { secureUrl: string; publicId: string },
+  customer: { name: string; email: string; phone: string }
+) {
+  const paymentRef = await addDoc(collection(db, 'paymentSubmissions'), {
+    customerUid,
+    customerName: customer.name,
+    customerEmail: customer.email,
+    customerPhone: customer.phone,
+    amount,
+    paymentType: 'save_to_buy',
+    status: 'pending',
+    receiptUrl: receipt.secureUrl,
+    receiptPublicId: receipt.publicId,
+    planId,
+    planNumber,
+    createdAt: serverTimestamp()
+  });
+  return paymentRef.id;
+}
