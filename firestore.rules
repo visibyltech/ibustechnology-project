@@ -5,12 +5,10 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Keep this allowlist aligned with the administrator account configured
-    // in VITE_ADMIN_EMAILS. The verified token check is enforced by Firebase,
-    // not by the browser UI.
+    // Keep this allowlist aligned with VITE_ADMIN_EMAILS. Only this exact
+    // authenticated email receives administrator permissions.
     function isAdmin() {
       return signedIn()
-        && request.auth.token.email_verified == true
         && request.auth.token.email in [
           'ibustechnologyltd1@gmail.com'
         ];
@@ -86,7 +84,7 @@ service cloud.firestore {
             && request.resource.data.amount <= get(/databases/$(database)/documents/saveToBuyPlans/$(request.resource.data.planId)).data.targetAmount
               - get(/databases/$(database)/documents/saveToBuyPlans/$(request.resource.data.planId)).data.totalSaved)
         );
-      // Only the verified admin can approve/reject a transfer submission.
+      // Only the allowlisted administrator can approve/reject a transfer submission.
       allow update: if isAdmin()
         && request.resource.data.customerUid == resource.data.customerUid
         && request.resource.data.amount == resource.data.amount
