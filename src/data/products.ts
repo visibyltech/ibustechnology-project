@@ -447,29 +447,3 @@ export const WHOLESALE_BENEFITS = [
   }
 ];
 
-export const TESTIMONIALS = [
-  {
-    id: 1,
-    name: 'Chidubem Okafor',
-    role: 'Electronics Retailer, Computer Village, Ikeja',
-    comment: 'The iBUS 30,000mAh power bank is our fastest moving product this year. Customers love the heavy-duty build and real capacity. Their wholesale dispatch from Alaba is always on time.',
-    rating: 5,
-    city: 'Lagos'
-  },
-  {
-    id: 2,
-    name: 'Fatima Abdullahi',
-    role: 'Student & Content Creator',
-    comment: 'I bought the iBUS buds 3.0 with ANC. The noise cancellation completely silences the BRT bus noise during my daily commute to Unilag. The bass is insane for this price!',
-    rating: 5,
-    city: 'Yaba, Lagos'
-  },
-  {
-    id: 3,
-    name: 'Engr. Emeka Nwosu',
-    role: 'Managing Director, GadgetHub Port Harcourt',
-    comment: 'We registered as an iBUS regional distributor in Rivers State 6 months ago. The 2-pack fast cables and car chargers have zero returns. Genuine quality, unmatched margins.',
-    rating: 5,
-    city: 'Port Harcourt'
-  }
-];
