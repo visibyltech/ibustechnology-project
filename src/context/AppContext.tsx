@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, onSnapshot, query, updateDoc, where, writeBatch } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { 
   Product, 
@@ -298,6 +298,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const saved = localStorage.getItem('ibus_products');
     return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
   });
+  const [hasAttemptedProductSeed, setHasAttemptedProductSeed] = useState(false);
 
   // Cart
   const [cart, setCart] = useState<CartItem[]>(() => {
@@ -415,6 +416,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const saved = localStorage.getItem('ibus_inquiries');
     return saved ? JSON.parse(saved) : [];
   });
+
+  // Public product catalogue is shared through Firestore. On a fresh database,
+  // the verified administrator seeds the existing starter catalogue once.
+  useEffect(() => {
+    const stop = onSnapshot(collection(db, 'products'), async (snapshot) => {
+      if (!snapshot.empty) {
+        setProducts(snapshot.docs.map((item) => ({ id: item.id, ...item.data() } as Product)));
+        return;
+      }
+
+      if (isAdminAuthenticated && !hasAttemptedProductSeed) {
+        setHasAttemptedProductSeed(true);
+        try {
+          const batch = writeBatch(db);
+          INITIAL_PRODUCTS.forEach((product) => {
+            batch.set(doc(db, 'products', product.id), product);
+          });
+          await batch.commit();
+        } catch (error) {
+          console.error('Unable to seed the initial product catalogue:', error);
+          showNotification('Could not publish the starter catalogue. Please check that Firestore rules are published.');
+        }
+      }
+    }, (error) => {
+      console.error('Unable to load the Firestore product catalogue:', error);
+    });
+    return stop;
+  }, [isAdminAuthenticated, hasAttemptedProductSeed]);
 
   // Firestore is the shared source of truth for customer orders and Save to Buy
   // plans. LocalStorage remains only as a non-authoritative cache for the UI.
@@ -604,19 +633,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Product CRUD
   const addProduct = (newProd: Omit<Product, 'id'>) => {
     const id = `ibus-${Date.now()}`;
-    const product: Product = { ...newProd, id };
-    setProducts((prev) => [product, ...prev]);
-    showNotification(`Added "${product.name}" to inventory`);
+    void addDoc(collection(db, 'products'), { ...newProd, createdAt: new Date().toISOString() })
+      .then(() => showNotification(`Added "${newProd.name}" to the shared product catalogue`))
+      .catch((error) => showNotification(error instanceof Error ? error.message : 'Unable to publish product to Firestore'));
   };
 
   const updateProduct = (id: string, updates: Partial<Product>) => {
-    setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...updates } : p)));
-    showNotification('Product inventory updated');
+    void updateDoc(doc(db, 'products', id), updates)
+      .then(() => showNotification('Product inventory updated for all customers'))
+      .catch((error) => showNotification(error instanceof Error ? error.message : 'Unable to update product in Firestore'));
   };
 
   const deleteProduct = (id: string) => {
-    setProducts((prev) => prev.filter((p) => p.id !== id));
-    showNotification('Product deleted from catalog');
+    void deleteDoc(doc(db, 'products', id))
+      .then(() => showNotification('Product deleted from the shared catalogue'))
+      .catch((error) => showNotification(error instanceof Error ? error.message : 'Unable to delete product from Firestore'));
   };
 
   // Open Checkout in different modes
