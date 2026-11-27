@@ -56,8 +56,8 @@ interface AppContextType {
   setActiveProductModal: (p: Product | null) => void;
   isCheckoutOpen: boolean;
   setIsCheckoutOpen: (open: boolean) => void;
-  checkoutInitialMode: 'pay_now' | 'bnpl' | 'save_to_buy';
-  openCheckoutWithMode: (mode: 'pay_now' | 'bnpl' | 'save_to_buy', directProduct?: Product) => void;
+  checkoutInitialMode: 'pay_now' | 'save_to_buy';
+  openCheckoutWithMode: (mode: 'pay_now' | 'save_to_buy', directProduct?: Product) => void;
 
   saveToBuySelectedProduct: Product | null;
   setSaveToBuySelectedProduct: (p: Product | null) => void;
@@ -189,7 +189,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [checkoutInitialMode, setCheckoutInitialMode] = useState<'pay_now' | 'bnpl' | 'save_to_buy'>('pay_now');
+  const [checkoutInitialMode, setCheckoutInitialMode] = useState<'pay_now' | 'save_to_buy'>('pay_now');
 
   const [saveToBuySelectedProduct, setSaveToBuySelectedProduct] = useState<Product | null>(null);
   const [isSaveToBuyModalOpen, setIsSaveToBuyModalOpen] = useState(false);
@@ -475,24 +475,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Open Checkout in different modes
-  const openCheckoutWithMode = (mode: 'pay_now' | 'bnpl' | 'save_to_buy', directProduct?: Product) => {
+  const openCheckoutWithMode = (mode: 'pay_now' | 'save_to_buy', directProduct?: Product) => {
     if (!user) {
       window.dispatchEvent(new Event('ibus:open-auth'));
-      return;
-    }
-    if (mode === 'bnpl') {
-      showNotification('Buy Now Pay Later is not currently available. Please use Pay Now or Save to Buy.');
       return;
     }
     if (directProduct) {
       if (mode === 'save_to_buy') {
         setSaveToBuySelectedProduct(directProduct);
         setIsSaveToBuyModalOpen(true);
-        return;
-      }
-      if (mode === 'bnpl') {
-        setBnplSelectedProduct(directProduct);
-        setIsBnplModalOpen(true);
         return;
       }
       // If pay_now with direct product, make sure it is in cart
