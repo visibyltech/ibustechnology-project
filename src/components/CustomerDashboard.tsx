@@ -32,7 +32,7 @@ export const CustomerDashboard: React.FC = () => {
     setCurrentView
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'orders' | 'save_to_buy' | 'bnpl' | 'wishlist' | 'profile'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'save_to_buy' | 'wishlist' | 'profile'>('orders');
 
   const wishlistProducts = products.filter((p) => wishlist.includes(p.id));
 
