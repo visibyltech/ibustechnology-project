@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AuthModal } from './AuthModal';
 import { 
   ShoppingBag, 
@@ -38,7 +38,18 @@ export const Header: React.FC = () => {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
 
+  useEffect(() => {
+    const openAuth = () => setAuthModalOpen(true);
+    window.addEventListener('ibus:open-auth', openAuth);
+    return () => window.removeEventListener('ibus:open-auth', openAuth);
+  }, []);
+
   const handleNavClick = (view: typeof currentView) => {
+    if ((view === 'dashboard' || view === 'save-to-buy') && !user) {
+      setAuthModalOpen(true);
+      setMobileMenuOpen(false);
+      return;
+    }
     setCurrentView(view);
     setMobileMenuOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
