@@ -216,7 +216,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return unsubscribe;
   }, []);
 
-  // Orders, BNPL, STB, Inquiries
+  // Customer orders, Save to Buy plans and inquiries
   const [orders, setOrders] = useState<Order[]>(() => {
     return [];
   });
