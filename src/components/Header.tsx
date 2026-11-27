@@ -348,7 +348,7 @@ export const Header: React.FC = () => {
               onClick={() => handleNavClick('dashboard')}
               className={`p-2.5 rounded-lg text-left ${currentView === 'dashboard' ? 'bg-amber-400/10 text-amber-400 font-bold' : 'text-slate-300'}`}
             >
-              My Orders & BNPL
+              My Account
             </button>
             <button
               onClick={() => handleNavClick('about-contact')}
