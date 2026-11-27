@@ -26,8 +26,6 @@ export const SaveToBuyView: React.FC = () => {
   const { 
     products, 
     saveToBuyPlans, 
-    createSaveToBuyPlan, 
-    addSaveToBuyDeposit,
     openCheckoutWithMode,
     setCurrentView,
     user,
