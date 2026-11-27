@@ -112,9 +112,15 @@ export const AdminDashboard: React.FC = () => {
       }
 
       // Upload local product images to Cloudinary before saving product records.
-      const migratedProducts = await Promise.all(missingProducts.map(async (product) => {
-        const images = await Promise.all((product.images || []).map(async (image, index) => {
-          if (/^https?:\/\//i.test(image)) return image;
+      const migratedProducts = [];
+      for (const product of missingProducts) {
+        const images = [];
+        for (let index = 0; index < (product.images || []).length; index += 1) {
+          const image = product.images[index];
+          if (/^https?:\/\//i.test(image)) {
+            images.push(image);
+            continue;
+          }
           const response = await fetch(image);
           if (!response.ok) throw new Error(`Could not read product image: ${image}`);
           const blob = await response.blob();
@@ -122,10 +128,10 @@ export const AdminDashboard: React.FC = () => {
           const extension = mimeType.split('/')[1]?.replace('jpeg', 'jpg') || 'jpg';
           const file = new File([blob], `${product.id}-${index + 1}.${extension}`, { type: mimeType });
           const uploaded = await uploadImageToCloudinary(file, 'ibus/products');
-          return uploaded.secureUrl;
-        }));
-        return { ...product, images };
-      }));
+          images.push(uploaded.secureUrl);
+        }
+        migratedProducts.push({ ...product, images });
+      }
 
       for (let offset = 0; offset < migratedProducts.length; offset += 400) {
         const batch = writeBatch(db);
