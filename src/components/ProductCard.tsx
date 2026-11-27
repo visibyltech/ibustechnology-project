@@ -79,8 +79,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           {product.name}
         </h3>
 
-        <div className="text-sm sm:text-base font-extrabold tracking-tight text-amber-300">
-          {formatNaira(displayPrice)}
+        <div className="flex flex-wrap items-baseline gap-2">
+          <span className="text-sm sm:text-base font-extrabold tracking-tight text-amber-300">
+            {formatNaira(displayPrice)}
+          </span>
+          {!isWholesaleMode && product.originalPrice && product.originalPrice > product.price && (
+            <>
+              <span className="text-[10px] text-slate-500 line-through">{formatNaira(product.originalPrice)}</span>
+              <span className="text-[9px] font-bold text-emerald-400">{Math.round((1 - product.price / product.originalPrice) * 100)}% OFF</span>
+            </>
+          )}
         </div>
 
         <div className="mt-auto grid grid-cols-2 gap-1.5 pt-1">
