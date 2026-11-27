@@ -37,7 +37,8 @@ const MainContent: React.FC = () => {
     currentView, 
     setCurrentView, 
     notification, 
-    isWholesaleMode, 
+    isWholesaleMode,
+    isAdminAuthenticated, 
     toggleWholesaleMode 
   } = useApp();
 
@@ -180,7 +181,14 @@ const MainContent: React.FC = () => {
         {currentView === 'save-to-buy' && <SaveToBuyView />}
         {currentView === 'about-contact' && <AboutContact />}
         {currentView === 'dashboard' && <CustomerDashboard />}
-        {currentView === 'admin' && <AdminDashboard />}
+        {currentView === 'admin' && (isAdminAuthenticated ? <AdminDashboard /> : (
+          <section className="mx-auto my-16 max-w-xl rounded-2xl border border-[#30384a] bg-[#11141c] p-8 text-center">
+            <ShieldCheck className="mx-auto h-10 w-10 text-amber-400" />
+            <h2 className="mt-4 text-xl font-bold text-white">Administrator access required</h2>
+            <p className="mt-2 text-sm text-slate-400">This area is restricted. Sign in with an authorized iBUS administrator account.</p>
+            <button onClick={() => setCurrentView('home')} className="mt-5 rounded-lg bg-amber-400 px-5 py-2.5 text-xs font-bold text-black">Return to store</button>
+          </section>
+        ))}
       </main>
 
       {/* Global Modals */}
