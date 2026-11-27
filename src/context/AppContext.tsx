@@ -306,7 +306,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Wishlist
   const [wishlist, setWishlist] = useState<string[]>(() => {
     const saved = localStorage.getItem('ibus_wishlist');
-    return saved ? JSON.parse(saved) : ['ibus-buds-3', 'ibus-pb-30000'];
+    return saved ? JSON.parse(saved) : [];
   });
 
   // Product details participate in browser history. Pressing Back closes the
@@ -362,41 +362,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // User
   const [user, setUser] = useState<UserProfile | null>(() => {
     const saved = localStorage.getItem('ibus_user');
-    if (saved) return JSON.parse(saved);
-    return {
-      id: 'usr-default',
-      name: 'Chidera Anyanwu',
-      email: 'chidera.gadgets@gmail.com',
-      phone: '+234 810 220 8521',
-      address: {
-        street: 'Block 4, Flat 12, Festac Town',
-        city: 'Amuwo-Odofin',
-        state: 'Lagos'
-      },
-      isWholesaleCustomer: false
-    };
+    if (saved) {
+      const savedUser = JSON.parse(saved);
+      return savedUser?.id?.startsWith('usr-') ? null : savedUser;
+    }
+    return null;
   });
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
 
   // Orders, BNPL, STB, Inquiries
   const [orders, setOrders] = useState<Order[]>(() => {
     const saved = localStorage.getItem('ibus_orders');
-    return saved ? JSON.parse(saved) : INITIAL_ORDERS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [saveToBuyPlans, setSaveToBuyPlans] = useState<SaveToBuyPlan[]>(() => {
     const saved = localStorage.getItem('ibus_stb');
-    return saved ? JSON.parse(saved) : INITIAL_SAVINGS_PLANS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [bnplPlans, setBnplPlans] = useState<BNPLPlan[]>(() => {
     const saved = localStorage.getItem('ibus_bnpl');
-    return saved ? JSON.parse(saved) : INITIAL_BNPL_PLANS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [wholesaleInquiries, setWholesaleInquiries] = useState<WholesaleInquiry[]>(() => {
     const saved = localStorage.getItem('ibus_inquiries');
-    return saved ? JSON.parse(saved) : INITIAL_INQUIRIES;
+    return saved ? JSON.parse(saved) : [];
   });
 
   // Notification toast
@@ -813,24 +805,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // User Actions
-  const loginAsDemoUser = (asWholesale = false) => {
-    setUser({
-      id: 'usr-chidera',
-      name: asWholesale ? 'Emeka Umeh (Umeh Electronics Nig)' : 'Chidera Anyanwu',
-      email: asWholesale ? 'umehelectronics@gmail.com' : 'chidera.gadgets@gmail.com',
-      phone: '+234 810 220 8521',
-      address: {
-        street: asWholesale ? 'Shop 18, Block B, Alaba Market' : '14 Admiralty Way, Lekki',
-        city: asWholesale ? 'Ojo' : 'Lagos',
-        state: 'Lagos'
-      },
-      isWholesaleCustomer: asWholesale,
-      businessName: asWholesale ? 'Umeh Electronics Nig Enterprises' : undefined
-    });
-    if (asWholesale) {
-      setIsWholesaleMode(true);
-    }
-    showNotification(`Logged in as ${asWholesale ? 'Wholesale Partner' : 'Retail Customer'}`);
+  const loginAsDemoUser = (_asWholesale = false) => {
+    showNotification('Customer sign-in is being connected to Firebase. Demo sign-in has been disabled.');
   };
 
   const logout = () => {
