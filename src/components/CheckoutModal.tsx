@@ -4,7 +4,6 @@ import {
   X, 
   ShieldCheck, 
   CreditCard, 
-  Building, 
   Phone, 
   CheckCircle2, 
   Truck, 
@@ -72,12 +71,6 @@ export const CheckoutModal: React.FC = () => {
   const [deliveryNotes, setDeliveryNotes] = useState('');
 
   // Payment Provider Setup Pending
-  const [payGatewayTab, setPayGatewayTab] = useState<'card' | 'transfer' | 'ussd'>('card');
-  const [cardNumber, setCardNumber] = useState('5399 4100 8821 9012');
-  const [cardExpiry, setCardExpiry] = useState('11/28');
-  const [cardCvv, setCardCvv] = useState('781');
-  const [cardOtp, setCardOtp] = useState('');
-  const [showOtpScreen, setShowOtpScreen] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   // Bank Transfer virtual account states
@@ -387,7 +380,7 @@ export const CheckoutModal: React.FC = () => {
                     <Zap className="w-3.5 h-3.5" />
                     <span>Pay Now</span>
                   </div>
-                  <p className="text-[10px] text-slate-400">Paystack / Bank Transfer / USSD</p>
+                  <p className="text-[10px] text-slate-400">Bank Transfer only</p>
                 </button>
 
                 <button
@@ -449,7 +442,7 @@ export const CheckoutModal: React.FC = () => {
                 <div className="flex items-center justify-between pb-3 border-b border-[#202533]">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-white uppercase font-mono tracking-wider">
-                      Paystack Nigeria Payment Gateway
+                      Bank Transfer
                     </span>
                   </div>
                   <span className="text-sm font-black text-amber-400 font-mono">
@@ -457,118 +450,8 @@ export const CheckoutModal: React.FC = () => {
                   </span>
                 </div>
 
-                {/* Gateway Tabs */}
-                <div className="flex items-center gap-2 mt-4">
-                  <button
-                    type="button"
-                    onClick={() => setPayGatewayTab('card')}
-                    className={`flex-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 border transition-all ${
-                      payGatewayTab === 'card' 
-                        ? 'bg-amber-400 text-black border-amber-400' 
-                        : 'bg-[#151923] text-slate-300 border-[#273042]'
-                    }`}
-                  >
-                    <CreditCard className="w-3.5 h-3.5" />
-                    <span>Debit Card (Mastercard / Visa / Verve)</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setPayGatewayTab('transfer')}
-                    className={`flex-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 border transition-all ${
-                      payGatewayTab === 'transfer' 
-                        ? 'bg-amber-400 text-black border-amber-400' 
-                        : 'bg-[#151923] text-slate-300 border-[#273042]'
-                    }`}
-                  >
-                    <Building className="w-3.5 h-3.5" />
-                    <span>Bank Transfer</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setPayGatewayTab('ussd')}
-                    className={`flex-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 border transition-all ${
-                      payGatewayTab === 'ussd' 
-                        ? 'bg-amber-400 text-black border-amber-400' 
-                        : 'bg-[#151923] text-slate-300 border-[#273042]'
-                    }`}
-                  >
-                    <Phone className="w-3.5 h-3.5" />
-                    <span>USSD</span>
-                  </button>
-                </div>
-
-                {/* Sub-view: Card Form */}
-                {payGatewayTab === 'card' && (
-                  <div className="mt-4 p-4 rounded-xl bg-[#131620] border border-[#232938] space-y-3">
-                    <div>
-                      <label className="text-[11px] text-slate-300 block mb-1">Card Number (Nigerian Verve / Master / Visa)</label>
-                      <input 
-                        type="text" 
-                        value={cardNumber}
-                        onChange={(e) => setCardNumber(e.target.value)}
-                        className="w-full bg-[#181d28] border border-[#293244] rounded-lg px-3 py-2 text-xs text-white font-mono tracking-widest outline-none"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-[11px] text-slate-300 block mb-1">Expiry Date</label>
-                        <input 
-                          type="text" 
-                          value={cardExpiry}
-                          onChange={(e) => setCardExpiry(e.target.value)}
-                          className="w-full bg-[#181d28] border border-[#293244] rounded-lg px-3 py-2 text-xs text-white font-mono outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[11px] text-slate-300 block mb-1">CVV</label>
-                        <input 
-                          type="password" 
-                          maxLength={3}
-                          value={cardCvv}
-                          onChange={(e) => setCardCvv(e.target.value)}
-                          className="w-full bg-[#181d28] border border-[#293244] rounded-lg px-3 py-2 text-xs text-white font-mono outline-none"
-                        />
-                      </div>
-                    </div>
-
-                    {showOtpScreen ? (
-                      <div className="p-3 bg-amber-400/10 border border-amber-400/30 rounded-lg space-y-2">
-                        <p className="text-xs text-white font-bold">Bank OTP Verification</p>
-                        <p className="text-[11px] text-slate-300">Payment authentication will be available after a payment provider is connected.</p>
-                        <input 
-                          type="text" 
-                          placeholder="Enter 6-digit OTP"
-                          value={cardOtp}
-                          onChange={(e) => setCardOtp(e.target.value)}
-                          className="w-full bg-[#181d28] border border-amber-400 rounded-lg px-3 py-2 text-xs text-white font-mono text-center tracking-widest outline-none"
-                        />
-                      </div>
-                    ) : null}
-
-                    <button
-                      type="button"
-                      disabled={isProcessingPayment}
-                      onClick={() => {
-                        if (!showOtpScreen) {
-                          setShowOtpScreen(true);
-                        } else {
-                          executePayNow();
-                        }
-                      }}
-                      className="w-full mt-2 py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs rounded-xl shadow-lg transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Lock className="w-4 h-4" />
-                      <span>{isProcessingPayment ? 'Payment setup pending...' : showOtpScreen ? `Confirm Payment of ${formatNaira(totalAmount)}` : `Pay ${formatNaira(totalAmount)}`}</span>
-                    </button>
-                  </div>
-                )}
-
                 {/* Sub-view: Bank Transfer */}
-                {payGatewayTab === 'transfer' && (
-                  <div className="mt-4 p-4 rounded-xl bg-[#131620] border border-[#232938] space-y-3">
+                <div className="mt-4 p-4 rounded-xl bg-[#131620] border border-[#232938] space-y-3">
                     <p className="text-xs text-slate-300 text-center">
                       Transfer exactly <span className="font-bold text-amber-400 font-mono">{formatNaira(totalAmount)}</span> to the iBUS account below.
                     </p>
@@ -591,27 +474,7 @@ export const CheckoutModal: React.FC = () => {
                       <CheckCircle2 className="w-4 h-4" />
                       {isUploadingReceipt ? 'Uploading receipt & submitting…' : 'Submit Transfer Receipt'}
                     </button>
-                  </div>
-                )}
-
-                {/* Sub-view: USSD */}
-                {payGatewayTab === 'ussd' && (
-                  <div className="mt-4 p-4 rounded-xl bg-[#131620] border border-[#232938] space-y-3">
-                    <p className="text-xs text-slate-300">Dial this USSD code on your registered Nigerian SIM card:</p>
-                    <div className="p-3 bg-[#181d28] rounded-lg border border-[#293244] font-mono text-center">
-                      <p className="text-base text-amber-400 font-bold">Not configured</p>
-                      <p className="text-[10px] text-slate-400 mt-1">USSD will be enabled after provider setup</p>
-                    </div>
-                    <button
-                      type="button"
-                      disabled={isProcessingPayment}
-                      onClick={executePayNow}
-                      className="w-full py-3 bg-amber-400 hover:bg-amber-300 text-black font-bold text-xs rounded-xl shadow-lg transition-colors"
-                    >
-                      {isProcessingPayment ? 'Waiting for USSD session...' : 'Complete USSD Payment'}
-                    </button>
-                  </div>
-                )}
+                </div>
               </div>
             )}
 
