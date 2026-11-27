@@ -1,15 +1,5 @@
 import React from 'react';
-import { 
-  Heart, 
-  ShoppingBag, 
-  Eye, 
-  PiggyBank, 
-  Star, 
-  ShieldCheck, 
-  Boxes,
-  Zap,
-  Check
-} from 'lucide-react';
+import { Heart, ShoppingBag, PiggyBank, Eye } from 'lucide-react';
 import { Product } from '../types';
 import { useApp, formatNaira } from '../context/AppContext';
 
@@ -18,18 +8,17 @@ interface ProductCardProps {
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
-  const { 
-    isWholesaleMode, 
-    addToCart, 
-    toggleWishlist, 
-    isInWishlist, 
+  const {
+    isWholesaleMode,
+    addToCart,
+    toggleWishlist,
+    isInWishlist,
     setActiveProductModal,
     openCheckoutWithMode
   } = useApp();
 
   const isFavorited = isInWishlist(product.id);
   const primaryImage = product.images[0] || '/assets/aistudio/IMG-20261104-WA0074_58210dd6.jpg';
-
   const displayPrice = isWholesaleMode ? product.wholesalePrice : product.price;
 
   return (
@@ -37,178 +26,103 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       role="button"
       tabIndex={0}
       aria-label={`View details for ${product.name}`}
-      onClick={(event) => { event.stopPropagation(); setActiveProductModal(product); }}
+      onClick={(event) => {
+        event.stopPropagation();
+        setActiveProductModal(product);
+      }}
       onKeyDown={(event) => {
         if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
           event.preventDefault();
           setActiveProductModal(product);
         }
       }}
-      className="group relative bg-[#11141b] rounded-2xl border border-[#222736] hover:border-amber-400/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 transition-all duration-300 flex flex-col overflow-hidden hover:shadow-xl hover:shadow-black/50 cursor-pointer"
+      className="group relative flex min-w-0 flex-col overflow-hidden rounded-xl sm:rounded-2xl border border-[#343b48] bg-[#1a1f28] shadow-sm transition-all duration-200 hover:border-amber-400/70 hover:shadow-lg hover:shadow-black/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 cursor-pointer"
     >
-      
-      {/* Top Media Container */}
-      <div className="relative aspect-[4/3] w-full bg-[#0a0c10] overflow-hidden flex items-center justify-center p-4">
-        {/* Subtle background glow on hover */}
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#11141b]/80 pointer-events-none" />
-
-        {/* Product Image */}
-        <img 
-          src={primaryImage} 
+      {/* Larger, brighter product photography */}
+      <div className="relative aspect-square w-full overflow-hidden bg-[#252b36] p-1.5 sm:p-2 flex items-center justify-center">
+        <img
+          src={primaryImage}
           alt={product.name}
-          className="max-h-full max-w-full object-contain filter group-hover:scale-105 transition-transform duration-500 ease-out"
+          className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-[1.04]"
           loading="lazy"
           referrerPolicy="no-referrer"
         />
 
-        {/* Top Badges: Quiet Text Tag (Anti-Pill Rule) */}
-        <div className="absolute top-3 left-3 flex flex-col gap-1 items-start">
-          {product.badge && (
-            <span className="text-[11px] font-mono font-bold tracking-wider uppercase text-amber-400 bg-black/85 backdrop-blur-md px-2 py-0.5 rounded border border-amber-400/30">
-              {product.badge}
-            </span>
-          )}
-          {isWholesaleMode && (
-            <span className="text-[10px] font-mono font-semibold tracking-wide text-white bg-blue-950/90 backdrop-blur-md px-2 py-0.5 rounded border border-blue-500/30">
-              MOQ: {product.minWholesaleQty} units
-            </span>
-          )}
-        </div>
+        {product.badge && (
+          <span className="absolute left-2 top-2 max-w-[75%] truncate rounded bg-black/80 px-1.5 py-1 text-[8px] sm:text-[9px] font-bold uppercase tracking-wide text-amber-300 border border-amber-400/30">
+            {product.badge}
+          </span>
+        )}
 
-        {/* Wishlist Button */}
         <button
-          onClick={(e) => {
-            e.stopPropagation();
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
             toggleWishlist(product.id);
           }}
-          className={`absolute top-3 right-3 p-2 rounded-full backdrop-blur-md transition-all ${
-            isFavorited 
-              ? 'bg-amber-400 text-black shadow-md' 
-              : 'bg-black/60 text-slate-300 hover:text-white hover:bg-black/90'
+          className={`absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full shadow-sm transition-colors ${
+            isFavorited ? 'bg-amber-400 text-black' : 'bg-black/65 text-white hover:bg-black/85'
           }`}
           title={isFavorited ? 'Remove from Wishlist' : 'Save to Wishlist'}
-          aria-label="Wishlist"
+          aria-label={isFavorited ? 'Remove from wishlist' : 'Add to wishlist'}
         >
-          <Heart className={`w-4 h-4 ${isFavorited ? 'fill-black' : ''}`} />
-        </button>
-
-        {/* Quick View Hover Action */}
-        <button
-          onClick={() => setActiveProductModal(product)}
-          className="absolute bottom-3 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-200 bg-black/85 hover:bg-black text-white text-xs font-medium px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-lg border border-[#2b3345] whitespace-nowrap"
-        >
-          <Eye className="w-3.5 h-3.5 text-amber-400" />
-          <span>Quick Specs & Tiers</span>
+          <Heart className={`h-3.5 w-3.5 ${isFavorited ? 'fill-current' : ''}`} />
         </button>
       </div>
 
-      {/* Card Body */}
-      <div className="p-4 flex flex-col flex-1 justify-between gap-3">
-        {/* Unboxed Metadata & Category */}
-        <div>
-          <div className="flex items-center justify-between text-xs text-slate-400 font-mono mb-1">
-            <span className="uppercase tracking-wider text-[11px] text-amber-400/90 font-semibold">
-              {product.category.replace('-', ' ')}
-            </span>
-            <div className="flex items-center gap-1 text-slate-300">
-              <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-              <span>{product.rating}</span>
-              <span className="text-slate-500">({product.reviewCount})</span>
-            </div>
-          </div>
+      {/* Only the product name and price are shown as product information. */}
+      <div className="flex flex-1 flex-col gap-2 p-2.5 sm:p-3">
+        <h3
+          className="min-h-[2.25rem] text-[11px] sm:text-sm font-bold leading-snug text-white line-clamp-2"
+          title={product.name}
+        >
+          {product.name}
+        </h3>
 
-          {/* Product Title */}
-          <h3 
-            onClick={() => setActiveProductModal(product)}
-            className="text-sm font-bold text-white hover:text-amber-400 cursor-pointer transition-colors line-clamp-1"
-            title={product.name}
-          >
-            {product.name}
-          </h3>
-
-          {/* Subtitle / Short spec */}
-          <p className="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed">
-            {product.subTitle}
-          </p>
+        <div className="text-sm sm:text-base font-extrabold tracking-tight text-amber-300">
+          {formatNaira(displayPrice)}
         </div>
 
-        {/* Pricing Block */}
-        <div className="pt-2 border-t border-[#1d222e]">
-          <div className="flex items-baseline justify-between gap-2">
-            <div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-lg font-extrabold text-white font-mono tracking-tight">
-                  {formatNaira(displayPrice)}
-                </span>
-                {!isWholesaleMode && product.originalPrice && (
-                  <span className="text-xs text-slate-500 line-through font-mono">
-                    {formatNaira(product.originalPrice)}
-                  </span>
-                )}
-              </div>
+        <div className="mt-auto grid grid-cols-2 gap-1.5 pt-1">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              addToCart(product, isWholesaleMode ? product.minWholesaleQty : 1, isWholesaleMode);
+            }}
+            className="flex min-h-8 min-w-0 items-center justify-center gap-1 rounded-md bg-amber-400 px-1.5 py-1.5 text-[9px] sm:text-[10px] font-extrabold leading-none text-black transition-colors hover:bg-amber-300"
+          >
+            <ShoppingBag className="h-3 w-3 shrink-0" />
+            <span className="truncate">{isWholesaleMode ? 'Add Carton' : 'Add to Cart'}</span>
+          </button>
 
-              {/* Wholesale Hint or Retail Contrast */}
-              {isWholesaleMode ? (
-                <p className="text-[11px] text-amber-400 font-mono mt-0.5">
-                  Bulk tier: ₦{product.wholesalePrice.toLocaleString()} / unit
-                </p>
-              ) : (
-                <p className="text-[11px] text-slate-400 font-mono mt-0.5">
-                  Wholesale from: <span className="text-amber-400 font-semibold">{formatNaira(product.wholesalePrice)}</span> (MOQ {product.minWholesaleQty})
-                </p>
-              )}
-            </div>
-
-            {/* In stock indicator */}
-            <span className="text-[11px] text-emerald-400 flex items-center gap-1 font-mono shrink-0">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-              In Stock
-            </span>
-          </div>
-
-          {/* Interactive Card Action Buttons */}
-          <div className="grid grid-cols-2 gap-2 mt-3.5 items-stretch">
+          {product.saveToBuyEligible ? (
             <button
               type="button"
               onClick={(event) => {
                 event.stopPropagation();
-                if (isWholesaleMode) {
-                  addToCart(product, product.minWholesaleQty, true);
-                } else {
-                  addToCart(product, 1, false);
-                }
+                openCheckoutWithMode('save_to_buy', product);
               }}
-              className="min-w-0 min-h-[58px] w-full px-1.5 py-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black font-bold text-[10px] sm:text-xs leading-tight rounded-lg transition-all flex flex-col items-center justify-center gap-1 shadow-sm"
+              className="flex min-h-8 min-w-0 items-center justify-center gap-1 rounded-md border border-[#414a59] bg-[#252c37] px-1.5 py-1.5 text-[9px] sm:text-[10px] font-bold leading-none text-slate-100 transition-colors hover:bg-[#303a49]"
+              title="Save towards this product"
             >
-              <ShoppingBag className="w-4 h-4 shrink-0" />
-              <span className="block w-full text-center whitespace-normal break-words">
-                {isWholesaleMode ? `Add Carton (${product.minWholesaleQty})` : 'Add to Cart'}
-              </span>
+              <PiggyBank className="h-3 w-3 shrink-0 text-emerald-300" />
+              <span className="truncate">Save to Buy</span>
             </button>
-
-            {product.saveToBuyEligible ? (
-              <button
-                type="button"
-                onClick={(event) => { event.stopPropagation(); openCheckoutWithMode('save_to_buy', product); }}
-                className="min-w-0 min-h-[58px] w-full px-1.5 py-2 bg-[#171b24] hover:bg-[#202532] text-slate-100 hover:text-white font-semibold text-[10px] sm:text-xs leading-tight rounded-lg transition-colors border border-[#293142] flex flex-col items-center justify-center gap-1"
-                title="Lock price with initial deposit and save towards it"
-              >
-                <PiggyBank className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span className="block w-full text-center whitespace-normal break-words">Save to Buy</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={(event) => { event.stopPropagation(); setActiveProductModal(product); }}
-                className="min-w-0 min-h-[58px] w-full px-1.5 py-2 bg-[#171b24] hover:bg-[#202532] text-slate-100 hover:text-white font-semibold text-[10px] sm:text-xs leading-tight rounded-lg transition-colors border border-[#293142] flex flex-col items-center justify-center gap-1"
-              >
-                <Eye className="w-4 h-4 text-amber-400 shrink-0" />
-                <span className="block w-full text-center whitespace-normal break-words">Details</span>
-              </button>
-            )}
-          </div>
+          ) : (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                setActiveProductModal(product);
+              }}
+              className="flex min-h-8 min-w-0 items-center justify-center gap-1 rounded-md border border-[#414a59] bg-[#252c37] px-1.5 py-1.5 text-[9px] sm:text-[10px] font-bold leading-none text-slate-100 transition-colors hover:bg-[#303a49]"
+            >
+              <Eye className="h-3 w-3 shrink-0 text-amber-300" />
+              <span>Details</span>
+            </button>
+          )}
         </div>
-
       </div>
     </article>
   );
