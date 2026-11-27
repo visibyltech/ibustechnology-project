@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   createUserWithEmailAndPassword,
-  sendEmailVerification,
   signInWithEmailAndPassword,
   updateProfile,
   sendPasswordResetEmail
@@ -33,22 +32,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
       if (mode === 'signup') {
         const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
         if (name.trim()) await updateProfile(credential.user, { displayName: name.trim() });
-        await sendEmailVerification(credential.user);
-        setNotice('Your account has been created. Please check your email for a verification link.');
+        setNotice('Your account has been created. You can now sign in and shop with iBUS.');
       } else if (mode === 'reset') {
         await sendPasswordResetEmail(auth, email.trim());
         setNotice('If an account exists for this email, a password reset link has been sent.');
       } else {
-        const credential = await signInWithEmailAndPassword(auth, email.trim(), password);
-        const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS || '')
-          .split(',')
-          .map((value: string) => value.trim().toLowerCase())
-          .filter(Boolean);
-        if (adminEmails.includes(email.trim().toLowerCase()) && !credential.user.emailVerified) {
-          await sendEmailVerification(credential.user);
-          setNotice('Your administrator email is not verified yet. We have sent a fresh verification link. Open it, verify your email, then sign in again.');
-          return;
-        }
+        await signInWithEmailAndPassword(auth, email.trim(), password);
         onClose();
       }
     } catch (err) {
