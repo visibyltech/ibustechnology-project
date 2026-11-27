@@ -6,7 +6,7 @@ import {
   updateProfile,
   sendPasswordResetEmail
 } from 'firebase/auth';
-import { ArrowLeft, Mail, Lock, UserRound, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Mail, Lock, UserRound, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import { auth } from '../lib/firebase';
 
 interface AuthModalProps {
@@ -18,6 +18,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -130,14 +131,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
                       Password
                       <span className="mt-2 flex items-center gap-3 rounded-xl border border-[#343d4d] bg-[#0d121b] px-4 focus-within:border-amber-400">
                         <Lock className="h-5 w-5 shrink-0 text-slate-500" />
-                        <input required minLength={6} type="password" value={password} onChange={(event) => setPassword(event.target.value)} className="w-full bg-transparent py-4 text-sm text-white outline-none placeholder:text-slate-600" placeholder="At least 6 characters" autoComplete={mode === 'signin' ? 'current-password' : 'new-password'} />
+                        <input required minLength={6} type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} className="w-full min-w-0 bg-transparent py-4 text-sm text-white outline-none placeholder:text-slate-600" placeholder="At least 6 characters" autoComplete={mode === 'signin' ? 'current-password' : 'new-password'} />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword((visible) => !visible)}
+                          className="shrink-0 rounded-md p-1.5 text-slate-400 hover:bg-[#202938] hover:text-amber-300"
+                          aria-label={showPassword ? 'Hide password' : 'Show password'}
+                          aria-pressed={showPassword}
+                        >
+                          {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        </button>
                       </span>
                     </label>
                   )}
 
                   {mode === 'signin' && (
                     <div className="flex justify-end">
-                      <button type="button" onClick={() => { setMode('reset'); setError(''); setNotice(''); }} className="text-xs font-semibold text-amber-400 hover:text-amber-300">Forgot password?</button>
+                      <button type="button" onClick={() => { setMode('reset'); setError(''); setNotice(''); setShowPassword(false); }} className="text-xs font-semibold text-amber-400 hover:text-amber-300">Forgot password?</button>
                     </div>
                   )}
                   {error && <p role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">{error}</p>}
@@ -149,11 +159,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
 
                 <div className="mt-7 border-t border-[#2b3342] pt-6 text-center text-sm text-slate-400">
                   {mode === 'signin' ? (
-                    <>Don't have an account? <button type="button" onClick={() => { setMode('signup'); setError(''); setNotice(''); }} className="font-bold text-amber-400 hover:text-amber-300">Create account</button></>
+                    <>Don't have an account? <button type="button" onClick={() => { setMode('signup'); setError(''); setNotice(''); setShowPassword(false); }} className="font-bold text-amber-400 hover:text-amber-300">Create account</button></>
                   ) : mode === 'signup' ? (
-                    <>Already have an account? <button type="button" onClick={() => { setMode('signin'); setError(''); setNotice(''); }} className="font-bold text-amber-400 hover:text-amber-300">Sign in</button></>
+                    <>Already have an account? <button type="button" onClick={() => { setMode('signin'); setError(''); setNotice(''); setShowPassword(false); }} className="font-bold text-amber-400 hover:text-amber-300">Sign in</button></>
                   ) : (
-                    <button type="button" onClick={() => { setMode('signin'); setError(''); setNotice(''); }} className="font-bold text-amber-400 hover:text-amber-300">Back to sign in</button>
+                    <button type="button" onClick={() => { setMode('signin'); setError(''); setNotice(''); setShowPassword(false); }} className="font-bold text-amber-400 hover:text-amber-300">Back to sign in</button>
                   )}
                 </div>
               </div>
