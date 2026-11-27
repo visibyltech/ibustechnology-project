@@ -23,6 +23,7 @@ import {
 import { useApp, formatNaira } from '../context/AppContext';
 import { Product, ProductCategory, OrderStatus } from '../types';
 import { BRAND_INFO } from '../data/products';
+import { uploadImageToCloudinary } from '../lib/cloudinary';
 
 export const AdminDashboard: React.FC = () => {
   const { 
@@ -53,6 +54,7 @@ export const AdminDashboard: React.FC = () => {
   const [newProdStock, setNewProdStock] = useState(100);
   const [newProdBadge, setNewProdBadge] = useState('New Release');
   const [newProdImage, setNewProdImage] = useState('/assets/aistudio/IMG-20261104-WA0088_1__650f297a.jpg');
+  const [isUploadingProductImage, setIsUploadingProductImage] = useState(false);
   const [newProdDesc, setNewProdDesc] = useState('Authentic iBUS engineering with 12 months replacement warranty.');
 
   // Tracking number prompt state
@@ -644,22 +646,31 @@ export const AdminDashboard: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-slate-300 font-semibold block mb-1">Select Product Image Asset</label>
-                <select
-                  value={newProdImage}
-                  onChange={(e) => setNewProdImage(e.target.value)}
+                <label className="text-slate-300 font-semibold block mb-1">Upload Product Image to Cloudinary</label>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  disabled={isUploadingProductImage}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setIsUploadingProductImage(true);
+                    try {
+                      const uploaded = await uploadImageToCloudinary(file, 'ibus/products');
+                      setNewProdImage(uploaded.secureUrl);
+                      showNotification('Product image uploaded successfully');
+                    } catch (error) {
+                      showNotification(error instanceof Error ? error.message : 'Image upload failed');
+                    } finally {
+                      setIsUploadingProductImage(false);
+                      e.target.value = '';
+                    }
+                  }}
                   className="w-full bg-[#171b26] border border-[#2b3345] rounded-lg px-3 py-2 text-white outline-none"
-                >
-                  <option value="/assets/aistudio/IMG-20261104-WA0088_1__650f297a.jpg">iBUS buds 3.0 ANC (Box + Case)</option>
-                  <option value="/assets/aistudio/IMG-20261104-WA0080_1__de103086.jpg">30,000mAh Power Bank (Retail Box)</option>
-                  <option value="/assets/aistudio/IMG-20261104-WA0086_1__9650e2a4.jpg">20,000mAh Power Bank</option>
-                  <option value="/assets/aistudio/IMG-20261104-WA0084_1__6f834baa.jpg">iS3 Mini 10,000mAh LED Power Bank</option>
-                  <option value="/assets/aistudio/IMG-20261104-WA0081_1__f344b7d1.jpg">iS2 Dual USB Car Charger 3.4A</option>
-                  <option value="/assets/aistudio/IMG-20261104-WA0087_1__7aae242a.jpg">C-Cable Type C 2-Pack</option>
-                  <option value="/assets/aistudio/IMG-20261104-WA0083_1__75b06355.jpg">L-Cable iPhone Lightning 2-Pack</option>
-                  <option value="/assets/aistudio/IMG-20261104-WA0085_1__48c2d545.jpg">M-Cable Android Micro USB 2-Pack</option>
-                  <option value="/assets/aistudio/IMG-20261104-WA0090_1__aeed71e6.jpg">iS1 True Wireless Earbuds</option>
-                </select>
+                />
+                <p className="text-[10px] text-slate-500 mt-1">JPG, PNG or WebP · Max 10 MB</p>
+                {isUploadingProductImage && <p className="text-xs text-amber-400 mt-2">Uploading image…</p>}
+                {newProdImage && <img src={newProdImage} alt="Product preview" className="mt-3 h-24 w-24 rounded-lg object-contain bg-black p-2" />}
               </div>
 
               <div>
