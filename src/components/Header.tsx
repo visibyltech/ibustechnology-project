@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { AuthModal } from './AuthModal';
 import { 
   ShoppingBag, 
   Heart, 
@@ -27,8 +28,6 @@ export const Header: React.FC = () => {
     toggleWholesaleMode,
     user,
     isAdminAuthenticated,
-    setIsAdminAuthenticated,
-    loginAsDemoUser,
     logout,
     searchQuery,
     setSearchQuery,
@@ -37,6 +36,7 @@ export const Header: React.FC = () => {
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   const handleNavClick = (view: typeof currentView) => {
     setCurrentView(view);
@@ -218,6 +218,7 @@ export const Header: React.FC = () => {
                     >
                       Save to Buy Tracker
                     </button>
+                    {isAdminAuthenticated && (
                     <button
                       onClick={() => {
                         handleNavClick('admin');
@@ -227,6 +228,7 @@ export const Header: React.FC = () => {
                     >
                       Admin Console
                     </button>
+                    )}
                     <div className="border-t border-[#222734] my-1"></div>
                     <button
                       onClick={() => {
@@ -245,21 +247,12 @@ export const Header: React.FC = () => {
                     </div>
                     <button
                       onClick={() => {
-                        loginAsDemoUser(false);
+                        setAuthModalOpen(true);
                         setUserDropdownOpen(false);
                       }}
                       className="w-full text-left px-4 py-2 hover:bg-[#1a1f2b] text-white"
                     >
-                      Sign in (Retail Customer)
-                    </button>
-                    <button
-                      onClick={() => {
-                        loginAsDemoUser(true);
-                        setUserDropdownOpen(false);
-                      }}
-                      className="w-full text-left px-4 py-2 hover:bg-[#1a1f2b] text-amber-400 font-medium"
-                    >
-                      Sign in (Wholesale Distributor)
+                      Sign in / Create account
                     </button>
                   </>
                 )}
@@ -364,4 +357,5 @@ export const Header: React.FC = () => {
       )}
     </header>
   );
+      {authModalOpen && <AuthModal onClose={() => setAuthModalOpen(false)} />}
 };
