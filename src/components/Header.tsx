@@ -355,7 +355,7 @@ export const Header: React.FC = () => {
           </div>
         </div>
       )}
+      {authModalOpen && <AuthModal onClose={() => setAuthModalOpen(false)} />}
     </header>
   );
-      {authModalOpen && <AuthModal onClose={() => setAuthModalOpen(false)} />}
 };
