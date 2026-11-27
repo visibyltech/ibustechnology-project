@@ -73,7 +73,19 @@ service cloud.firestore {
         && request.resource.data.receiptUrl is string
         && request.resource.data.receiptUrl.matches('https://res\\.cloudinary\\.com/.*')
         && request.resource.data.paymentType in ['order', 'save_to_buy']
-        && request.resource.data.createdAt == request.time;
+        && request.resource.data.createdAt == request.time
+        && (
+          (request.resource.data.paymentType == 'order'
+            && request.resource.data.orderId is string
+            && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.customerUid == request.auth.uid
+            && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.total == request.resource.data.amount)
+          ||
+          (request.resource.data.paymentType == 'save_to_buy'
+            && request.resource.data.planId is string
+            && get(/databases/$(database)/documents/saveToBuyPlans/$(request.resource.data.planId)).data.customerUid == request.auth.uid
+            && request.resource.data.amount <= get(/databases/$(database)/documents/saveToBuyPlans/$(request.resource.data.planId)).data.targetAmount
+              - get(/databases/$(database)/documents/saveToBuyPlans/$(request.resource.data.planId)).data.totalSaved)
+        );
       // Only the verified admin can approve/reject a transfer submission.
       allow update: if isAdmin()
         && request.resource.data.customerUid == resource.data.customerUid
