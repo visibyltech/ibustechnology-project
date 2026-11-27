@@ -39,7 +39,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
         await sendPasswordResetEmail(auth, email.trim());
         setNotice('If an account exists for this email, a password reset link has been sent.');
       } else {
-        await signInWithEmailAndPassword(auth, email.trim(), password);
+        const credential = await signInWithEmailAndPassword(auth, email.trim(), password);
+        const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS || '')
+          .split(',')
+          .map((value: string) => value.trim().toLowerCase())
+          .filter(Boolean);
+        if (adminEmails.includes(email.trim().toLowerCase()) && !credential.user.emailVerified) {
+          await sendEmailVerification(credential.user);
+          setNotice('Your administrator email is not verified yet. We have sent a fresh verification link. Open it, verify your email, then sign in again.');
+          return;
+        }
         onClose();
       }
     } catch (err) {
