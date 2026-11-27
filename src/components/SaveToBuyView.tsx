@@ -46,46 +46,12 @@ export const SaveToBuyView: React.FC = () => {
 
   const handleDepositSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedPlanForDeposit || depositAmount <= 0) return;
-
-    setIsDepositing(true);
-    setTimeout(() => {
-      addSaveToBuyDeposit(
-        selectedPlanForDeposit, 
-        depositAmount, 
-        depositChannel, 
-        receiptFileName ? `https://storage.ibus.ng/receipts/${receiptFileName}` : undefined
-      );
-      setIsDepositing(false);
-      setSelectedPlanForDeposit(null);
-      setReceiptFileName('');
-
-      confetti({
-        particleCount: 70,
-        spread: 60,
-        origin: { y: 0.7 }
-      });
-    }, 1000);
+    window.alert('Save to Buy deposits are not enabled yet. No money has been collected or credited to your balance.');
   };
 
   const handleCreateNewPlan = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedProduct) return;
-
-    createSaveToBuyPlan(
-      selectedProduct.id, 
-      selectedProduct.price, 
-      newPlanInitialDeposit, 
-      newPlanFrequency, 
-      'Card'
-    );
-    setIsStartingNewPlan(false);
-
-    confetti({
-      particleCount: 80,
-      spread: 70,
-      origin: { y: 0.6 }
-    });
+    window.alert('Save to Buy is being connected to verified payment processing. No savings plan has been activated yet.');
   };
 
   return (
