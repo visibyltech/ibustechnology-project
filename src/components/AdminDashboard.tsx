@@ -53,9 +53,9 @@ export const AdminDashboard: React.FC = () => {
     return onSnapshot(q, (snapshot) => {
       setPaymentSubmissions(snapshot.docs.map((item) => ({ id: item.id, ...item.data() } as PaymentSubmission)));
     }, (error) => {
-      showNotification(error.message || 'Unable to load transfer submissions');
+      console.error('Unable to load transfer submissions:', error);
     });
-  }, [showNotification]);
+  }, []);
 
   const reviewPayment = async (payment: PaymentSubmission, decision: 'approved' | 'rejected') => {
     if (!auth.currentUser) return;
