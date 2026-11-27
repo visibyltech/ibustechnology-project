@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { collection, doc, onSnapshot, orderBy, query, writeBatch } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { approveOrRejectPayment, PaymentSubmission } from '../lib/paymentSubmissions';
 import { 
@@ -38,15 +38,15 @@ export const AdminDashboard: React.FC = () => {
     updateOrderStatus, 
     saveToBuyPlans, 
     verifySaveToBuyDeposit,
-    bnplPlans, 
     wholesaleInquiries, 
     updateInquiryStatus,
     showNotification
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'payments' | 'save_to_buy' | 'bnpl' | 'inquiries'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'payments' | 'save_to_buy' | 'inquiries'>('overview');
   const [paymentSubmissions, setPaymentSubmissions] = useState<PaymentSubmission[]>([]);
   const [reviewingPaymentId, setReviewingPaymentId] = useState<string | null>(null);
+  const [isMigratingCatalogue, setIsMigratingCatalogue] = useState(false);
 
   useEffect(() => {
     const q = query(collection(db, 'paymentSubmissions'), orderBy('createdAt', 'desc'));
@@ -223,14 +223,6 @@ export const AdminDashboard: React.FC = () => {
           }`}
         >
           Save to Buy Verification ({saveToBuyPlans.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('bnpl')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-            activeTab === 'bnpl' ? 'bg-amber-400 text-black font-extrabold' : 'bg-[#12151e] text-slate-300 border border-[#222736]'
-          }`}
-        >
-          BNPL Credit Accounts ({bnplPlans.length})
         </button>
         <button
           onClick={() => setActiveTab('inquiries')}
@@ -536,32 +528,6 @@ export const AdminDashboard: React.FC = () => {
               {payment.reviewNote && <p className="text-xs text-slate-400">Admin note: {payment.reviewNote}</p>}
             </div>
           ))}
-        </div>
-      )}
-
-      {/* TAB 5: BNPL ACCOUNTS */}
-      {activeTab === 'bnpl' && (
-        <div className="bg-[#11141c] border border-[#222736] rounded-2xl p-6 space-y-4">
-          <div className="flex items-center justify-between pb-4 border-b border-[#202533]">
-            <h3 className="text-sm font-bold text-white font-mono uppercase">BNPL Credit Portfolio</h3>
-            <span className="text-xs text-blue-400 font-mono">{bnplPlans.length} Accounts</span>
-          </div>
-
-          <div className="space-y-3">
-            {bnplPlans.map((bnpl) => (
-              <div key={bnpl.id} className="p-4 bg-[#141722] rounded-xl border border-[#232938] space-y-2 text-xs font-mono">
-                <div className="flex justify-between">
-                  <span className="text-blue-400 font-bold">{bnpl.applicationNumber}</span>
-                  <span className="text-slate-300">BVN Hash: ***{bnpl.customerBvnLast4}</span>
-                </div>
-                <p className="text-white font-sans font-bold">{bnpl.productName}</p>
-                <div className="flex justify-between text-slate-400">
-                  <span>Down Payment: {formatNaira(bnpl.initialDeposit)} (Paid)</span>
-                  <span>Remaining: <span className="text-amber-400 font-bold">{formatNaira(bnpl.amountRemaining)}</span></span>
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
       )}
 
