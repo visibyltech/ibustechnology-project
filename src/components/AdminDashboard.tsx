@@ -13,6 +13,7 @@ import {
   Plus, 
   Check, 
   Edit3, 
+  Pencil,
   Trash2, 
   Truck, 
   Phone, 
@@ -73,6 +74,8 @@ export const AdminDashboard: React.FC = () => {
 
   // New product modal
   const [showAddProductModal, setShowAddProductModal] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [newProdDiscount, setNewProdDiscount] = useState(0);
   const [newProdName, setNewProdName] = useState('');
   const [newProdSubTitle, setNewProdSubTitle] = useState('');
   const [newProdCategory, setNewProdCategory] = useState<ProductCategory>('power-banks');
@@ -150,34 +153,64 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  const handleCreateProduct = (e: React.FormEvent) => {
+  const resetProductForm = () => {
+    setNewProdName(''); setNewProdSubTitle(''); setNewProdCategory('power-banks');
+    setNewProdPrice(25000); setNewProdWholesalePrice(19000); setNewProdMinWholesaleQty(10);
+    setNewProdStock(100); setNewProdBadge('New Release'); setNewProdImage('');
+    setNewProdDesc('Authentic iBUS engineering with 12 months replacement warranty.');
+    setNewProdDiscount(0); setEditingProduct(null);
+  };
+
+  const openEditProduct = (product: Product) => {
+    setEditingProduct(product);
+    setNewProdName(product.name || '');
+    setNewProdSubTitle(product.subTitle || '');
+    setNewProdCategory(product.category);
+    setNewProdPrice(product.originalPrice || product.price);
+    setNewProdWholesalePrice(product.wholesalePrice);
+    setNewProdMinWholesaleQty(product.minWholesaleQty);
+    setNewProdStock(product.stockCount);
+    setNewProdBadge(product.badge || '');
+    setNewProdImage(product.images?.[0] || '');
+    setNewProdDesc(product.description || '');
+    const original = product.originalPrice || product.price;
+    setNewProdDiscount(product.originalPrice && original > product.price ? Math.round((1 - product.price / original) * 100) : 0);
+    setShowAddProductModal(true);
+  };
+
+  const handleSaveProduct = (e: React.FormEvent) => {
     e.preventDefault();
-    addProduct({
-      name: newProdName,
-      subTitle: newProdSubTitle || 'Premium iBUS Accessory',
+    if (isUploadingProductImage) { showNotification('Please wait for the product image upload to finish.'); return; }
+    const regularPrice = Number(newProdPrice);
+    const discount = Math.min(90, Math.max(0, Number(newProdDiscount) || 0));
+    const salePrice = Math.round(regularPrice * (1 - discount / 100));
+    const productData = {
+      ...(editingProduct || {}),
+      name: newProdName.trim(),
+      subTitle: newProdSubTitle.trim() || 'Premium iBUS Accessory',
       category: newProdCategory,
-      price: Number(newProdPrice),
+      price: salePrice,
+      originalPrice: discount > 0 ? regularPrice : undefined,
       wholesalePrice: Number(newProdWholesalePrice),
       minWholesaleQty: Number(newProdMinWholesaleQty),
-      wholesaleTiers: [
-        { minQty: Number(newProdMinWholesaleQty), pricePerUnit: Number(newProdWholesalePrice), discountPercent: 25, label: 'Carton' }
-      ],
-      images: [newProdImage],
-      rating: 5.0,
-      reviewCount: 1,
-      inStock: true,
+      wholesaleTiers: editingProduct?.wholesaleTiers?.length
+        ? editingProduct.wholesaleTiers.map((tier, index) => index === 0 ? { ...tier, minQty: Number(newProdMinWholesaleQty), pricePerUnit: Number(newProdWholesalePrice) } : tier)
+        : [{ minQty: Number(newProdMinWholesaleQty), pricePerUnit: Number(newProdWholesalePrice), discountPercent: 25, label: 'Carton' }],
+      images: [newProdImage || editingProduct?.images?.[0] || ''],
+      inStock: Number(newProdStock) > 0,
       stockCount: Number(newProdStock),
-      badge: newProdBadge || undefined,
-      specs: { 'Origin': 'Alaba Plaza Hub', 'Warranty': '12 Months Replacement' },
-      features: ['Genuine high-grade electronics', 'High energy efficiency'],
+      badge: newProdBadge.trim() || undefined,
+      specs: editingProduct?.specs || { Origin: 'Alaba Plaza Hub', Warranty: '12 Months Replacement' },
+      features: editingProduct?.features || ['Genuine high-grade electronics', 'High energy efficiency'],
       description: newProdDesc,
-      warranty: '12 Months Replacement Warranty',
-      bnplEligible: true,
-      saveToBuyEligible: true
-    });
-
+      warranty: editingProduct?.warranty || '12 Months Replacement Warranty',
+      bnplEligible: editingProduct?.bnplEligible ?? true,
+      saveToBuyEligible: editingProduct?.saveToBuyEligible ?? true
+    };
+    if (editingProduct) updateProduct(editingProduct.id, productData);
+    else addProduct(productData);
     setShowAddProductModal(false);
-    setNewProdName('');
+    resetProductForm();
   };
 
   return (
@@ -214,7 +247,7 @@ export const AdminDashboard: React.FC = () => {
             <span>{isMigratingCatalogue ? 'Migrating catalogue…' : 'Migrate Existing Products'}</span>
           </button>
           <button
-            onClick={() => setShowAddProductModal(true)}
+            onClick={() => { resetProductForm(); setShowAddProductModal(true); }}
             className="px-5 py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black font-extrabold text-xs rounded-xl shadow-md flex items-center gap-2 transition-all"
           >
             <Plus className="w-4 h-4" />
@@ -395,44 +428,20 @@ export const AdminDashboard: React.FC = () => {
                         </div>
                       </div>
                     </td>
-                    <td className="py-3">
-                      <input 
-                        type="number"
-                        defaultValue={p.price}
-                        onBlur={(e) => updateProduct(p.id, { price: Number(e.target.value) })}
-                        className="w-20 bg-[#1b202c] border border-[#293244] rounded px-1.5 py-1 text-white text-xs font-mono"
-                      />
-                    </td>
-                    <td className="py-3">
-                      <input 
-                        type="number"
-                        defaultValue={p.wholesalePrice}
-                        onBlur={(e) => updateProduct(p.id, { wholesalePrice: Number(e.target.value) })}
-                        className="w-20 bg-[#1b202c] border border-[#293244] rounded px-1.5 py-1 text-amber-400 text-xs font-mono font-bold"
-                      />
-                    </td>
+                    <td className="py-3 text-white">{formatNaira(p.price)}</td>
+                    <td className="py-3 text-amber-400">{formatNaira(p.wholesalePrice)}</td>
                     <td className="py-3 text-slate-300">{p.minWholesaleQty} units</td>
-                    <td className="py-3">
-                      <input 
-                        type="number"
-                        defaultValue={p.stockCount}
-                        onBlur={(e) => updateProduct(p.id, { stockCount: Number(e.target.value) })}
-                        className="w-16 bg-[#1b202c] border border-[#293244] rounded px-1.5 py-1 text-white text-xs font-mono"
-                      />
-                    </td>
-                    <td className="py-3">
-                      <span className="text-[10px] bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded">
-                        {p.badge || 'Standard'}
-                      </span>
-                    </td>
+                    <td className="py-3 text-slate-300">{p.stockCount}</td>
+                    <td className="py-3"><span className="text-[10px] bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded">{p.badge || 'Standard'}</span></td>
                     <td className="py-3 text-right">
-                      <button
-                        onClick={() => deleteProduct(p.id)}
-                        className="text-slate-500 hover:text-red-400 p-1 transition-colors"
-                        title="Delete product"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="inline-flex items-center gap-2">
+                        <button type="button" onClick={() => openEditProduct(p)} className="text-amber-400 hover:text-amber-300 rounded-lg border border-amber-400/20 bg-amber-400/10 p-2" title="Edit product" aria-label="Edit product">
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button type="button" onClick={() => { if (window.confirm('Delete this product from the catalogue?')) deleteProduct(p.id); }} className="text-slate-500 hover:text-red-400 rounded-lg border border-[#293244] p-2" title="Delete product" aria-label="Delete product">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -634,18 +643,18 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL: ADD PRODUCT */}
+      {/* MODAL: ADD / EDIT PRODUCT */}
       {showAddProductModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-[#12151e] border border-[#272e3f] rounded-2xl p-6 max-w-lg w-full space-y-4 max-h-[90vh] overflow-y-auto text-xs">
             <div className="flex items-center justify-between pb-3 border-b border-[#202533]">
-              <h3 className="text-sm font-bold text-white">Add New Product to iBUS Catalog</h3>
-              <button onClick={() => setShowAddProductModal(false)} className="text-slate-400 hover:text-white">
+              <h3 className="text-sm font-bold text-white">{editingProduct ? "Edit Product Details" : "Add New Product to iBUS Catalog"}</h3>
+              <button onClick={() => { setShowAddProductModal(false); resetProductForm(); }} className="text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateProduct} className="space-y-3">
+            <form onSubmit={handleSaveProduct} className="space-y-3">
               <div>
                 <label className="text-slate-300 font-semibold block mb-1">Product Model Name *</label>
                 <input 
@@ -698,9 +707,16 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               </div>
 
+              <div>
+                <label className="text-slate-300 font-semibold block mb-1">Discount (%)</label>
+                <input type="number" min="0" max="90" value={newProdDiscount} onChange={(e) => setNewProdDiscount(Number(e.target.value))} className="w-full bg-[#171b26] border border-[#2b3345] rounded-lg px-3 py-2 text-white outline-none" />
+                <p className="mt-1 text-[10px] text-slate-500">Enter 0 for no discount. Storefront price is calculated automatically.</p>
+                {newProdDiscount > 0 && <p className="mt-1 text-xs font-bold text-emerald-400">Customer price: {formatNaira(Math.round(Number(newProdPrice) * (1 - Math.min(90, newProdDiscount) / 100)))}</p>}
+              </div>
+
               <div className="grid grid-cols-3 gap-3 font-mono">
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1 font-sans">Retail (₦) *</label>
+                  <label className="text-slate-300 font-semibold block mb-1 font-sans">Regular Retail Price (₦) *</label>
                   <input 
                     type="number" 
                     required
@@ -743,7 +759,7 @@ export const AdminDashboard: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-slate-300 font-semibold block mb-1">Upload Product Image to Cloudinary</label>
+                <label className="text-slate-300 font-semibold block mb-1">{editingProduct ? "Replace Product Image on Cloudinary" : "Upload Product Image to Cloudinary"}</label>
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
@@ -784,7 +800,7 @@ export const AdminDashboard: React.FC = () => {
                 type="submit"
                 className="w-full py-3 bg-amber-400 hover:bg-amber-300 text-black font-extrabold text-xs rounded-xl shadow-lg transition-colors"
               >
-                Publish Product to Store
+                {editingProduct ? "Save Product Changes" : "Publish Product to Store"}
               </button>
             </form>
           </div>
