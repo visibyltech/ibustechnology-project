@@ -210,6 +210,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       const currentUser = auth.currentUser || firebaseUser;
+      try {
+        await currentUser.getIdToken(true);
+      } catch (error) {
+        console.error('Unable to refresh Firebase sign-in token:', error);
+      }
       const email = (currentUser.email || '').toLowerCase();
       const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS || '')
         .split(',')
